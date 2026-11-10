@@ -1,0 +1,74 @@
+<%- include('partials/header', { crumbs: [['Settings']] }) %>
+<h1>Settings</h1>
+<% if (error) { %><div class="error"><%= error %></div><% } %>
+<div class="cols-even">
+  <form class="box" method="post" action="/settings">
+    <div class="box-head"><h2>Profile</h2><a class="more" href="/u/<%= me.username %>">View my profile &rsaquo;</a></div>
+    <div class="box-body">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="form" value="profile">
+      <div class="field">
+        <label for="sb">Bio</label>
+        <textarea id="sb" name="bio" maxlength="500" data-count><%= me.bio %></textarea>
+      </div>
+      <div class="field">
+        <label for="sc">Contact</label>
+        <input id="sc" name="contact" maxlength="200" value="<%= me.contact %>" placeholder="e.g. Telegram @you, Discord you" data-count>
+        <div class="hint">Shown on your profile. Do not put passwords or emails you care about here.</div>
+      </div>
+      <button type="submit" class="primary">Save profile</button>
+    </div>
+  </form>
+  <div>
+    <section class="box" id="profile-picture" aria-labelledby="profile-picture-heading">
+      <div class="box-head"><h2 id="profile-picture-heading">Profile picture</h2></div>
+      <div class="box-body">
+        <div class="avatar-settings">
+          <%- include('partials/profile-avatar', { avatarUser: me }) %>
+          <form method="post" action="/settings/avatar" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <div class="field">
+              <label for="avatar">Choose a picture</label>
+              <input id="avatar" type="file" name="avatar" accept="image/jpeg,image/png,image/webp" aria-describedby="avatar-hint" required>
+              <div class="hint" id="avatar-hint">JPEG, PNG, or WebP under 4 MB. Cropped to a square.</div>
+            </div>
+            <button type="submit" class="primary"><%= me.has_avatar ? 'Replace picture' : 'Upload picture' %></button>
+          </form>
+        </div>
+        <% if (me.has_avatar) { %>
+          <form class="avatar-remove" method="post" action="/settings">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button type="submit" class="link danger" name="form" value="remove-avatar">Remove picture</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+    <form class="box" method="post" action="/settings">
+      <div class="box-head"><h2>Password</h2></div>
+      <div class="box-body">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="form" value="password">
+        <div class="field"><label for="p1">Current password</label><input id="p1" type="password" name="current_password" required autocomplete="current-password"></div>
+        <div class="field"><label for="p2">New password</label><input id="p2" type="password" name="new_password" required minlength="8" autocomplete="new-password">
+          <div class="hint">At least 8 characters. Changing it logs out your other devices.</div></div>
+        <button type="submit">Change password</button>
+      </div>
+    </form>
+    <form class="box" method="post" action="/settings">
+      <div class="box-head"><h2>Email</h2></div>
+      <div class="box-body">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="form" value="email">
+        <div class="field"><label for="se">Email for password resets</label><input id="se" name="email" maxlength="254" value="<%= me.email || '' %>" autocomplete="email" inputmode="email">
+          <div class="hint">Never shown to anyone. Leave empty to remove it.</div></div>
+        <div class="field"><label for="sp">Current password</label><input id="sp" type="password" name="current_password" required autocomplete="current-password"></div>
+        <button type="submit">Save email</button>
+      </div>
+    </form>
+    <div class="box">
+      <div class="box-head"><h2>Appearance</h2></div>
+      <div class="box-body actions">
+        <span>Current theme: <b><%= theme %></b></span>
+        <button type="button" data-theme-toggle>Switch to <%= theme === 'light' ? 'dark' : 'light' %></button>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,46 @@
+<%# expects: threads; optional: showForum, showPrice (default true), emptyText %>
+<% const withPrice = locals.showPrice !== false; %>
+<table class="threads">
+  <thead>
+    <tr>
+      <th>Thread</th>
+      <% if (withPrice) { %><th class="right">Price</th><% } %>
+      <th class="center hide-sm">Replies</th>
+      <th class="right">Last post</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if (!threads.length) { %>
+      <tr><td class="empty" colspan="4"><%= locals.emptyText || 'Nothing here yet.' %></td></tr>
+    <% } %>
+    <% for (const t of threads) { const done = t.listing_type && t.status !== 'open'; %>
+      <tr class="<%= t.pinned ? 'pinned' : '' %> <%= done ? 'muted' : '' %> <%= t.last_post_at > since ? 'unread' : '' %>">
+        <td>
+          <div class="t-row">
+            <a class="av av-<%= t.author.charCodeAt(0) % 6 %>" href="/u/<%= t.author %>" title="<%= t.author %>"><%= t.author[0].toUpperCase() %></a>
+            <div class="t-text">
+              <div class="t-title">
+                <% if (t.listing_type) { %><span class="tag <%= t.listing_type %>" title="<%= LISTING_TYPES[t.listing_type] %>"><%= LISTING_SHORT[t.listing_type] %></span><% } %>
+                <a href="/t/<%= t.id %>"><%= t.listing_type ? '@' + t.handle : t.title %></a>
+                <% if (t.listing_type === 'sell' && t.author_role && t.author_role !== 'member') { %><span class="chip stock" title="Owned and sold by Fincen staff">Fincen stock</span><% } %>
+                <% if (t.pinned) { %><span class="chip">Pinned</span><% } %>
+                <% if (t.locked) { %><span class="chip">Locked</span><% } %>
+                <% if (done) { %><span class="chip st-<%= t.status %>"><%= STATUSES[t.status] %></span><% } %>
+              </div>
+              <div class="t-meta">
+                <% if (t.listing_type) { %><%= t.title %> &middot; <% } %>
+                <a href="/u/<%= t.author %>"><%= t.author %></a>
+                <% if (locals.showForum) { %> in <a href="/f/<%= t.forum_slug %>"><%= t.forum_name %></a><% } %>
+              </div>
+            </div>
+          </div>
+        </td>
+        <% if (withPrice) { %>
+          <td class="right mid-cell"><% if (t.listing_type) { %><span class="price"><%= money(t.price_cents) %></span><% } %></td>
+        <% } %>
+        <td class="center num hide-sm mid-cell"><%= t.reply_count %></td>
+        <td class="right num mid-cell"><%- time(t.last_post_at) %><% if (t.last_user) { %> <span class="small">by <a href="/u/<%= t.last_user %>"><%= t.last_user %></a></span><% } %></td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

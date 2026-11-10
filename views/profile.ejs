@@ -1,0 +1,158 @@
+<%- include('partials/header', { crumbs: [['Members', '/members'], [user.username]] }) %>
+<% const self = me && me.id === user.id; %>
+<% if (user.banned) { %><div class="notice bad-note"><b class="bad">Banned.</b> <%= user.ban_reason || 'No reason given.' %> Do not deal with this member.</div><% } %>
+<div class="page-head">
+  <div class="profile-identity">
+    <%- include('partials/profile-avatar', { avatarUser: user }) %>
+    <div class="profile-name">
+      <h1><span><%= user.username %></span>
+        <% if (user.role !== 'member') { %><span class="role <%= user.role %>"><%= user.role === 'admin' ? 'Administrator' : 'Moderator' %></span><% } %>
+        <% if (membership && membership.plan !== 'free') { %><span class="chip"><%= membershipName %> &middot; Test</span><% } %>
+      </h1>
+      <% if (membership?.headline) { %><p class="body-text"><%= membership.headline %></p><% } %>
+      <p><%= rank(user.rep, user.created_at) %> &middot;
+        <% if (online(user.last_seen)) { %><span class="on-dot"></span>online now<% } else { %>last seen <%- time(user.last_seen) %><% } %>
+        &middot; joined <%= date(user.created_at) %></p>
+    </div>
+  </div>
+  <div class="actions">
+    <% if (self) { %>
+      <% if (checkoutEnabled) { %><a class="btn primary" href="/upgrades"><%= membership.plan === 'free' ? 'Upgrade membership' : 'Manage membership' %></a><% } %>
+      <% if (checkoutEnabled) { %><a class="btn" href="/orders">My Deals</a><% } %>
+      <a class="btn" href="/settings">Edit profile</a>
+      <a class="btn" href="/my/listings">My listings</a>
+    <% } else if (me) { %>
+      <a class="btn primary" href="/messages/<%= user.username %>">Send message</a>
+      <a class="btn" href="#vouch-form"><%= mine ? 'Edit vouch' : 'Leave a vouch' %></a>
+      <details class="pop">
+        <summary>Report member</summary>
+        <form class="pop-body" method="post" action="/report">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="hidden" name="kind" value="user"><input type="hidden" name="target_id" value="<%= user.id %>">
+          <input type="hidden" name="next" value="<%= path %>">
+          <label>What happened?</label>
+          <textarea name="reason" maxlength="500" required></textarea>
+          <p></p><button type="submit" class="primary">Send report</button>
+        </form>
+      </details>
+    <% } %>
+  </div>
+</div>
+
+<div class="cols">
+  <div>
+    <div class="box">
+      <div class="box-body stat-row">
+        <div><a class="rep-link" href="/u/<%= user.username %>#feedback"><b class="<%= user.rep > 0 ? 'good' : user.rep < 0 ? 'bad' : '' %>"><%= signed(user.rep) %></b><span>reputation</span></a></div>
+        <div><a class="rep-link" href="/u/<%= user.username %>?fb=pos#feedback"><b class="good"><%= counts.pos %></b><span>positive</span></a></div>
+        <div><a class="rep-link" href="/u/<%= user.username %>?fb=neu#feedback"><b class="warn"><%= counts.neu %></b><span>neutral</span></a></div>
+        <div><a class="rep-link" href="/u/<%= user.username %>?fb=neg#feedback"><b class="bad"><%= counts.neg %></b><span>negative</span></a></div>
+        <div><b><a class="listing-count" href="/market?seller=<%= encodeURIComponent(user.username) %>&amp;status=open" aria-label="View <%= user.username %>'s open listings"><%= deals.open %></a></b><span>open listings</span></div>
+        <div><b><%= deals.sold %></b><span>marked sold</span></div>
+        <div><b><%= user.post_count %></b><span>posts</span></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="box-head"><h2>Listings and threads</h2></div>
+      <%- include('partials/threadlist', { threads, showForum: true, emptyText: 'No threads yet.' }) %>
+    </div>
+
+    <div class="box" id="feedback" tabindex="-1">
+      <div class="box-head">
+        <h2>Feedback</h2>
+        <span class="small">
+          <a class="<%= !fbFilter ? 'b' : '' %>" href="/u/<%= user.username %>#feedback">All</a> &middot;
+          <a class="<%= fbFilter === 'pos' ? 'b' : '' %>" href="/u/<%= user.username %>?fb=pos#feedback">Positive</a> &middot;
+          <a class="<%= fbFilter === 'neu' ? 'b' : '' %>" href="/u/<%= user.username %>?fb=neu#feedback">Neutral</a> &middot;
+          <a class="<%= fbFilter === 'neg' ? 'b' : '' %>" href="/u/<%= user.username %>?fb=neg#feedback">Negative</a>
+        </span>
+      </div>
+      <table>
+        <tbody>
+          <% if (!vouches.length) { %><tr><td class="empty">No feedback<%= fbFilter ? ' of this kind' : ' yet' %>.</td></tr><% } %>
+          <% for (const v of vouches) { %>
+            <tr>
+              <td class="nowrap b <%= v.rating > 0 ? 'good' : v.rating < 0 ? 'bad' : 'warn' %>"><%= v.rating ? signed(v.rating) + ' rep' : 'Neutral' %></td>
+              <td>
+                <div class="body-text"><%= v.comment %></div>
+                <% if (v.deal_id) { %><a class="small" href="/t/<%= v.deal_id %>">Deal listing<%= v.deal_handle ? ' · @' + v.deal_handle : '' %></a><% } %>
+              </td>
+              <td class="right num"><a href="/u/<%= v.username %>"><%= v.username %></a><br><span class="small"><%- time(v.created_at) %></span></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <div class="box-head"><h2>About</h2></div>
+      <div class="box-body">
+        <% if (user.bio) { %><div class="body-text small"><%- fmt(user.bio) %></div><% } else { %><p class="dim">No bio.</p><% } %>
+        <% if (user.contact) { %>
+          <h3>Contact</h3>
+          <div class="body-text small"><%- fmt(user.contact) %></div>
+          <p class="hint">Anyone can type any contact here. Confirm on-site by message before paying.</p>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (me && !self) { %>
+      <form class="box" id="vouch-form" method="post" action="/u/<%= user.username %>/vouch">
+        <div class="box-head"><h2><%= mine ? 'Edit your vouch' : 'Leave a vouch' %></h2></div>
+        <div class="box-body">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="field">
+            <label for="vouch-deal">Deal listing link</label>
+            <input id="vouch-deal" name="deal" inputmode="url" maxlength="512" required value="<%= mine && mine.deal_thread_id ? '/t/' + mine.deal_thread_id : '' %>" placeholder="Paste the listing link">
+            <div class="hint">Use the Fincen listing for the deal.</div>
+          </div>
+          <div class="field">
+            <label for="vr">Reputation points</label>
+            <select id="vr" name="rating">
+              <% for (let points = 5; points >= -5; points--) { %>
+                <option value="<%= points %>" <%= (mine?.rating ?? 1) === points ? 'selected' : '' %>><%= points ? signed(points) + ' rep' : '0 rep (neutral)' %></option>
+              <% } %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="vc">Deal description</label>
+            <textarea id="vc" name="comment" minlength="5" maxlength="300" rows="3" required placeholder="Describe what happened in the deal" data-count><%= mine ? mine.comment : '' %></textarea>
+            <div class="hint">Leave one vouch per member after a completed deal. You can edit it later.</div>
+          </div>
+          <button type="submit" class="primary">Save vouch</button>
+        </div>
+      </form>
+    <% } %>
+
+    <% if (isMod && !self) { %>
+      <div class="box">
+        <div class="box-head"><h2>Staff tools</h2></div>
+        <div class="box-body">
+          <form method="post" action="/u/<%= user.username %>/ban" <% if (!user.banned) { %>data-confirm="Ban <%= user.username %>?"<% } %>>
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <% if (user.banned) { %>
+              <input type="hidden" name="action" value="unban"><button type="submit">Unban</button>
+            <% } else { %>
+              <div class="field"><label for="br">Ban reason</label><input id="br" name="reason" maxlength="200"></div>
+              <button type="submit" class="danger">Ban member</button>
+            <% } %>
+          </form>
+          <% if (me.role === 'admin') { %>
+            <h3>Role</h3>
+            <form class="actions" method="post" action="/u/<%= user.username %>/role">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <select name="role">
+                <% for (const r of ['member', 'mod', 'admin']) { %><option value="<%= r %>" <%= user.role === r ? 'selected' : '' %>><%= r %></option><% } %>
+              </select>
+              <button type="submit">Set role</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </aside>
+</div>
+<%- include('partials/footer') %>

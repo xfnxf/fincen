@@ -1,0 +1,23 @@
+{
+  "name": "handle-forum",
+  "version": "1.0.0",
+  "description": "Username marketplace forum",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "admin": "node grant-admin.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.4.0",
+    "sharp": "^0.35.5"
+  }
+}

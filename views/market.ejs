@@ -1,0 +1,66 @@
+<% const marketTitle = f.stock ? 'Fincen Stock' : 'The Market'; %>
+<%- include('partials/header', { title: marketTitle, crumbs: [['Market']] }) %>
+<% const feat = !filtered && pg.page === 1 ? threads.slice(0, 3) : []; const rest = threads.slice(feat.length); %>
+<div class="center-head">
+  <h1><% if (f.seller) { %><%= f.status === 'open' ? 'Open listings' : 'Listings' %> by <%= f.seller %><% } else { %><%= marketTitle %><% } %></h1>
+  <p><%= pg.total %> handle<%= pg.total === 1 ? '' : 's' %> across <%= platforms.length %> platforms.</p>
+</div>
+<% if (feat.length) { %>
+  <div class="feat">
+    <% for (const t of feat) { %>
+      <a class="feat-card" href="/t/<%= t.id %>">
+        <span class="cap"><%= t.listing_type === 'buy' ? 'Wanted · ' : '' %><%= t.forum_name %><%= t.listing_type === 'sell' && t.author_role !== 'member' ? ' · Fincen stock' : '' %></span>
+        <span class="feat-handle">@<%= t.handle %></span>
+        <span class="feat-price"><%= money(t.price_cents) %></span>
+      </a>
+    <% } %>
+  </div>
+<% } %>
+
+<div class="tabs"><a class="<%= f.stock ? '' : 'on' %>" href="/market">All listings</a><a class="<%= f.stock ? 'on' : '' %>" href="/market?stock=1">Fincen stock</a><a href="/fragment">On Fragment</a></div>
+
+<form class="filters" method="get" action="/market">
+  <% if (f.stock) { %><input type="hidden" name="stock" value="1"><% } %>
+  <% if (f.seller) { %><input type="hidden" name="seller" value="<%= f.seller %>"><% } %>
+  <input class="grow" name="q" value="<%= f.q %>" maxlength="64" placeholder="Find a username" aria-label="Username or keyword">
+  <select name="platform" aria-label="Platform" data-autosubmit>
+    <option value="">All platforms</option>
+    <% for (const p of platforms) { %><option value="<%= p.slug %>" <%= f.platform === p.slug ? 'selected' : '' %>><%= p.name %></option><% } %>
+  </select>
+  <select name="type" aria-label="Listing type" data-autosubmit>
+    <option value="">Any type</option>
+    <% for (const k in LISTING_TYPES) { %><option value="<%= k %>" <%= f.type === k ? 'selected' : '' %>><%= LISTING_TYPES[k] %></option><% } %>
+  </select>
+  <select name="status" aria-label="Status" data-autosubmit>
+    <option value="open" <%= f.status === 'open' ? 'selected' : '' %>>Open</option>
+    <option value="sold" <%= f.status === 'sold' ? 'selected' : '' %>>Sold</option>
+    <option value="closed" <%= f.status === 'closed' ? 'selected' : '' %>>Closed</option>
+    <option value="all" <%= f.status === 'all' ? 'selected' : '' %>>Any status</option>
+  </select>
+  <input class="short" name="max" value="<%= f.max %>" inputmode="decimal" placeholder="Max $" aria-label="Maximum price in dollars">
+  <select name="sort" aria-label="Sort" data-autosubmit>
+    <option value="new" <%= f.sort === 'new' ? 'selected' : '' %>>Recently active</option>
+    <option value="low" <%= f.sort === 'low' ? 'selected' : '' %>>Cheapest first</option>
+    <option value="high" <%= f.sort === 'high' ? 'selected' : '' %>>Priciest first</option>
+  </select>
+  <button type="submit">Go</button>
+  <% if (filtered) { %><a href="/market">Clear</a><% } %>
+</form>
+<% if (canSaveSearch) { %>
+  <div class="actions">
+    <% if (filtered) { %>
+      <form method="post" action="/saved/searches">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <% for (const [key, value] of Object.entries(f)) { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% } %>
+        <button type="submit">Save these filters</button>
+      </form>
+    <% } %>
+    <a class="btn" href="/saved/searches">Saved searches</a>
+  </div>
+<% } %>
+
+<% if (rest.length || !feat.length) { %><div class="box">
+  <%- include('partials/threadlist', { threads: rest, showForum: true, emptyText: 'No listings match. Try fewer filters.' }) %>
+</div><% } %>
+<%- include('partials/pager', { pg }) %>
+<%- include('partials/footer') %>

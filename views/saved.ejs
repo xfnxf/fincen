@@ -1,0 +1,6 @@
+<%- include('partials/header', { crumbs: [['Saved listings']] }) %>
+<div class="page-head"><div><h1>Saved listings</h1></div></div>
+<div class="box">
+  <%- include('partials/threadlist', { threads, showForum: true, emptyText: 'Nothing saved. Open a listing and press "Save listing" to keep track of it.' }) %>
+</div>
+<%- include('partials/footer') %>

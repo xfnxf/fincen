@@ -1,0 +1,22 @@
+<%- include('partials/header', { crumbs: [[title]] }) %>
+<div class="page-head">
+  <div><h1><%= title %></h1><p>Sandbox transactions use simulated payments.</p></div>
+  <% if (isMod) { %><a class="btn" href="<%= review ? '/orders' : '/orders?review=1' %>"><%= review ? 'My Deals' : 'Review test orders' %></a><% } %>
+</div>
+<% if (review) { %><nav class="tabs" aria-label="Staff order filters">
+  <a class="<%= disputes ? '' : 'on' %>" href="/orders?review=1">All orders</a>
+  <a class="<%= disputes ? 'on' : '' %>" href="/orders?review=1&amp;disputes=1">Open disputes</a>
+</nav><% } %>
+<div class="box">
+  <table>
+    <thead><tr><th>Order</th><th>Status</th><th class="right">Amount</th></tr></thead>
+    <tbody>
+      <% if (!orders.length) { %><tr><td class="empty" colspan="3">No test orders yet.</td></tr><% } %>
+      <% for (const order of orders) { %>
+        <tr><td><a href="/orders/<%= order.id %>">#<%= order.id %> &middot; @<%= order.handle %></a></td><td><%= statuses[order.status] %><div class="t-meta"><%= order.next %></div></td><td class="right"><%= money(order.price_cents) %></td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/pager', { pg }) %>
+<%- include('partials/footer') %>

@@ -1,0 +1,16 @@
+<%- include('partials/header', { crumbs: [['Market', '/market'], ['Saved searches']] }) %>
+<div class="page-head">
+  <div><h1>Saved searches</h1><p>Save your filters from the market to run them again here.</p></div>
+  <a class="btn primary" href="/market">Browse market</a>
+</div>
+<div class="box">
+  <table><tbody>
+    <% if (!searches.length) { %><tr><td class="empty">No saved searches yet.</td></tr><% } %>
+    <% for (const search of searches) { %>
+      <tr><td><a href="/market?<%= search.query %>"><%= search.name %></a></td><td class="right">
+        <form method="post" action="/saved/searches/<%= search.id %>/delete"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit">Remove</button></form>
+      </td></tr>
+    <% } %>
+  </tbody></table>
+</div>
+<%- include('partials/footer') %>

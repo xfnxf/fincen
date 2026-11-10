@@ -1,0 +1,7 @@
+<svg class="burst" viewBox="0 0 250 250" aria-hidden="true">
+  <g>
+    <% for (let i = 0; i < 120; i++) { const a = i * Math.PI / 60, r = i % 2 ? 118 : 96; %><line x1="<%= (125 + Math.cos(a) * 50).toFixed(1) %>" y1="<%= (125 + Math.sin(a) * 50).toFixed(1) %>" x2="<%= (125 + Math.cos(a) * r).toFixed(1) %>" y2="<%= (125 + Math.sin(a) * r).toFixed(1) %>"/><% } %>
+  </g>
+  <circle cx="125" cy="125" r="46"/>
+  <text x="125" y="148" text-anchor="middle">@</text>
+</svg>

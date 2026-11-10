@@ -1,0 +1,53 @@
+<%- include('partials/header', { crumbs: [[forum.section], [forum.name]] }) %>
+<%
+  const link = (o) => {
+    const m = Object.assign({}, f, o), p = new URLSearchParams();
+    for (const k in m) if (m[k] && !(k === 'sort' && m[k] === 'active')) p.set(k, m[k]);
+    const s = p.toString();
+    return '/f/' + forum.slug + (s ? '?' + s : '');
+  };
+  const canPost = !forum.staff_only || isMod;
+%>
+<div class="page-head">
+  <div>
+    <h1><% if (forum.is_market) { %><span class="dot p-<%= forum.slug %>"></span><% } %><%= forum.name %></h1>
+    <p><%= forum.description %></p>
+  </div>
+  <% if (canPost) { %>
+    <a class="btn primary" href="/f/<%= forum.slug %>/new"><%= forum.is_market ? '+ New listing' : '+ New thread' %></a>
+  <% } else { %><span class="dim">Only staff can post here</span><% } %>
+</div>
+
+<div class="tabs">
+  <% if (forum.is_market) { %>
+    <a class="<%= !f.type ? 'on' : '' %>" href="<%= link({ type: '' }) %>">All</a>
+    <% for (const k in LISTING_TYPES) { %>
+      <a class="<%= f.type === k ? 'on' : '' %>" href="<%= link({ type: k }) %>" title="<%= LISTING_SHORT[k] %>"><%= LISTING_TYPES[k] %></a>
+    <% } %>
+  <% } %>
+  <form class="filters push" method="get" action="/f/<%= forum.slug %>">
+    <% if (f.type) { %><input type="hidden" name="type" value="<%= f.type %>"><% } %>
+    <% if (forum.is_market) { %>
+      <select name="status" aria-label="Status" data-autosubmit>
+        <option value="">Any status</option>
+        <option value="open" <%= f.status === 'open' ? 'selected' : '' %>>Open</option>
+        <option value="sold" <%= f.status === 'sold' ? 'selected' : '' %>>Sold</option>
+      </select>
+    <% } %>
+    <select name="sort" aria-label="Sort" data-autosubmit>
+      <option value="active" <%= f.sort === 'active' ? 'selected' : '' %>>Recently active</option>
+      <option value="new" <%= f.sort === 'new' ? 'selected' : '' %>>Newest</option>
+      <% if (forum.is_market) { %>
+        <option value="low" <%= f.sort === 'low' ? 'selected' : '' %>>Cheapest first</option>
+        <option value="high" <%= f.sort === 'high' ? 'selected' : '' %>>Priciest first</option>
+      <% } %>
+    </select>
+    <noscript><button type="submit">Go</button></noscript>
+  </form>
+</div>
+
+<div class="box">
+  <%- include('partials/threadlist', { threads, showPrice: !!forum.is_market, emptyText: (f.type || f.status) ? 'No threads match these filters.' : 'No threads yet. Be the first to post.' }) %>
+</div>
+<%- include('partials/pager', { pg }) %>
+<%- include('partials/footer') %>

@@ -1,0 +1,39 @@
+<%- include('partials/header', { crumbs: [[ticketBackLabel, ticketBack], ['Request #' + ticket.id]] }) %>
+<div class="page-head">
+  <div>
+    <h1>Broker request</h1>
+    <p>#<%= ticket.id %> &middot; <%= ticket.status === 'open' ? 'Open' : 'Completed' %></p>
+  </div>
+  <a class="btn" href="<%= ticketBack %>">Back to <%= ticketBackLabel.toLowerCase() %></a>
+</div>
+<section class="box" aria-labelledby="original-request">
+  <div class="box-head">
+    <h2 id="original-request">Original request for @<%= ticket.handle %></h2>
+    <a href="https://fragment.com/username/<%= ticket.handle %>" target="_blank" rel="nofollow noopener noreferrer">View on Fragment</a>
+  </div>
+  <div class="box-body">
+    <p class="dim small">From <a href="/u/<%= ticket.requester %>"><%= ticket.requester %></a> &middot; <%- time(ticket.created_at) %></p>
+    <p><b>Budget</b> &middot; <%= ticket.budget || 'No budget given' %></p>
+    <div class="body-text"><%= ticket.note || 'No note was added.' %></div>
+  </div>
+</section>
+<section class="box" aria-labelledby="ticket-replies">
+  <div class="box-head"><h2 id="ticket-replies">Replies</h2></div>
+  <div class="chat">
+    <% if (!replies.length) { %><p class="dim">No replies yet.</p><% } %>
+    <% for (const reply of replies) { %>
+      <div id="reply-<%= reply.id %>" class="msg<%= reply.author_id === me.id ? ' mine' : '' %>"><%- fmt(reply.body) %><span class="when"><%= reply.username %> &middot; <%= reply.author_id === ticket.user_id ? 'Requester' : 'Staff' %> &middot; <%- time(reply.created_at) %></span></div>
+    <% } %>
+  </div>
+  <% if (ticket.status === 'open') { %>
+    <form class="box-body" method="post" action="<%= ticketUrl %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="field">
+        <label for="ticket-reply">Reply to ticket</label>
+        <textarea id="ticket-reply" name="body" maxlength="4000" required data-count data-draft="broker-<%= ticket.id %>" rows="4"></textarea>
+      </div>
+      <button type="submit" class="primary">Send reply</button>
+    </form>
+  <% } %>
+</section>
+<%- include('partials/footer') %>

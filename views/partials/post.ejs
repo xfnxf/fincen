@@ -1,0 +1,24 @@
+<%# expects: p {anchor, username, role, rep, post_count, joined, last_seen, body, created_at, edited_at},
+    num, link, kind, targetId, editUrl (or null), deleteAction (or null), canReply %>
+<div class="box post" id="<%= p.anchor %>">
+  <div class="post-user">
+    <a class="av av-lg av-<%= p.username.charCodeAt(0) % 6 %>" href="/u/<%= p.username %>"><%= p.username[0].toUpperCase() %></a>
+    <a class="name" href="/u/<%= p.username %>"><%= p.username %></a>
+    <% if (p.role !== 'member') { %><span class="role <%= p.role %>"><%= p.role === 'admin' ? 'Administrator' : 'Moderator' %></span><br><% } %>
+    <span class="dim"><%= rank(p.rep, p.joined) %></span>
+    <% if (online(p.last_seen)) { %><br><span class="on-dot"></span>Online<% } %>
+    <dl>
+      <dt>Rep</dt><dd class="<%= p.rep > 0 ? 'good' : p.rep < 0 ? 'bad' : '' %> b"><a class="rep-link" href="/u/<%= p.username %>#feedback" title="Read feedback"><%= signed(p.rep) %></a></dd>
+      <dt>Posts</dt><dd><%= p.post_count %></dd>
+      <dt>Joined</dt><dd><%= date(p.joined) %></dd>
+    </dl>
+  </div>
+  <div class="post-main">
+    <div class="post-top">
+      <span><%- time(p.created_at) %><% if (p.edited_at) { %> &middot; edited <%- time(p.edited_at) %><% } %></span>
+      <a href="<%= link %>" title="Link to this post">#<%= num %></a>
+    </div>
+    <div class="post-body" id="body-<%= p.anchor %>"><%- fmt(p.body) %></div>
+    <%- include('post-actions') %>
+  </div>
+</div>

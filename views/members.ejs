@@ -1,0 +1,41 @@
+<%- include('partials/header', { crumbs: [['Members']] }) %>
+<% const sl = (k) => '/members?sort=' + k + (s ? '&q=' + encodeURIComponent(s) : ''); %>
+<div class="page-head">
+  <div><h1>Members</h1><p><%= pg.total %> member<%= pg.total === 1 ? '' : 's' %><%= s ? ' matching "' + s + '"' : '' %></p></div>
+  <form class="actions" method="get" action="/members">
+    <input type="hidden" name="sort" value="<%= sort %>">
+    <input name="q" value="<%= s %>" maxlength="32" placeholder="Find a member">
+    <button type="submit">Find</button>
+  </form>
+</div>
+<div class="tabs">
+  <span class="lbl">Sort</span>
+  <% for (const [k, label] of [['rep', 'Reputation'], ['posts', 'Posts'], ['new', 'Newest'], ['seen', 'Last seen'], ['name', 'Name']]) { %>
+    <a class="<%= sort === k ? 'on' : '' %>" href="<%= sl(k) %>"><%= label %></a>
+  <% } %>
+</div>
+<div class="box">
+  <table>
+    <thead><tr><th>Member</th><th class="center">Rep</th><th class="center hide-sm">Feedback</th><th class="center hide-sm">Posts</th><th class="hide-sm">Joined</th><th class="right">Last seen</th></tr></thead>
+    <tbody>
+      <% if (!members.length) { %><tr><td class="empty" colspan="6">No members found.</td></tr><% } %>
+      <% for (const u of members) { %>
+        <tr>
+          <td>
+            <a class="b" href="/u/<%= u.username %>"><%= u.username %></a>
+            <% if (u.role !== 'member') { %><span class="role <%= u.role %>"><%= u.role === 'admin' ? 'Admin' : 'Mod' %></span><% } %>
+            <% if (u.banned) { %><span class="bad small b">Banned</span><% } %>
+            <div class="t-meta"><%= rank(u.rep, u.created_at) %></div>
+          </td>
+          <td class="center b <%= u.rep > 0 ? 'good' : u.rep < 0 ? 'bad' : 'dim' %>"><a class="rep-link" href="/u/<%= u.username %>#feedback" title="Read feedback"><%= signed(u.rep) %></a></td>
+          <td class="center num hide-sm"><a class="rep-link" href="/u/<%= u.username %>#feedback" title="Read feedback"><%= u.fb_count %></a></td>
+          <td class="center num hide-sm"><%= u.post_count %></td>
+          <td class="num hide-sm"><%= date(u.created_at) %></td>
+          <td class="right num"><% if (online(u.last_seen)) { %><span class="on-dot"></span>online<% } else { %><%- time(u.last_seen) %><% } %></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/pager', { pg }) %>
+<%- include('partials/footer') %>

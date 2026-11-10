@@ -1,0 +1,22 @@
+<%- include('partials/header', { crumbs: [['Inbox', '/messages'], ['My broker requests']] }) %>
+<div class="page-head">
+  <div><h1>My broker requests</h1></div>
+  <a class="btn" href="/fragment">Browse Fragment</a>
+</div>
+<div class="box">
+  <table>
+    <thead><tr><th>Request</th><th>Status</th><th class="right">Submitted</th></tr></thead>
+    <tbody>
+      <% if (!tickets.length) { %><tr><td class="empty" colspan="3">No broker requests yet.</td></tr><% } %>
+      <% for (const ticket of tickets) { %>
+        <tr>
+          <td><a class="b" href="/broker/requests/<%= ticket.id %>">@<%= ticket.handle %> <span class="dim small">#<%= ticket.id %></span></a></td>
+          <td><%= ticket.status === 'open' ? 'Open' : 'Completed' %></td>
+          <td class="right num"><%- time(ticket.created_at) %></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/pager', { pg }) %>
+<%- include('partials/footer') %>

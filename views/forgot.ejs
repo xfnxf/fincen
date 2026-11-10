@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+<div class="narrow">
+  <% if (sent) { %>
+    <div class="box">
+      <div class="box-head"><h2>Check your email</h2></div>
+      <div class="box-body">
+        <p>If an account uses that address, a reset link is on its way. It works for one hour.</p>
+        <p class="dim">Nothing arrived? The account may have no email saved. In that case ask <a href="/staff">staff</a> for help.</p>
+        <a class="btn" href="/login">Back to log in</a>
+      </div>
+    </div>
+  <% } else { %>
+    <form class="box" method="post" action="/forgot">
+      <div class="box-head"><h2>Reset password</h2></div>
+      <div class="box-body">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <div class="field">
+          <label for="fe">Email on your account</label>
+          <input id="fe" name="email" maxlength="254" required autofocus autocomplete="email" inputmode="email">
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary">Send reset link</button>
+          <a href="/login">Back to log in</a>
+        </div>
+      </div>
+    </form>
+  <% } %>
+</div>
+<%- include('partials/footer') %>

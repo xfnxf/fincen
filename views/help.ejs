@@ -1,0 +1,85 @@
+<%- include('partials/header', { crumbs: [['Help']] }) %>
+<div class="cols">
+  <div>
+    <h1>Help &amp; safety</h1>
+    <div class="box" id="trading">
+      <div class="box-head"><h2>Buying and selling</h2></div>
+      <div class="box-body">
+        <ol>
+          <li><b>Find a name.</b> Use the search box, the <a href="/market">Market</a> filters, or a platform forum.</li>
+          <li><b>Check the member.</b> Open their profile: reputation, feedback comments, join date, open listings.</li>
+          <li><b>Message them.</b> "Message seller" on the listing starts a private chat that links the listing.</li>
+          <li><b>Agree terms.</b> Price, payment method, what is included, and who goes first.</li>
+          <li><b>Use a middleman</b> if either side is new. Post in <a href="/f/middleman">Middleman Requests</a>.</li>
+          <li><b>Finish up.</b> The seller marks the listing sold and both sides leave feedback on each other's profile.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="box" id="middleman">
+      <div class="box-head"><h2>Middlemen</h2></div>
+      <div class="box-body">
+        <p>A middleman holds the account while the buyer pays, then passes it on. Only members on the <a href="/staff">Staff page</a> are official.</p>
+        <p>Scammers copy staff names on Discord and Telegram. Always confirm by sending the staff member a message <b>on this site</b> before handing anything over.</p>
+      </div>
+    </div>
+    <div class="box" id="safety">
+      <div class="box-head"><h2>Avoiding scams</h2></div>
+      <div class="box-body">
+        <ul>
+          <li>Reputation with no detailed comments, or all from brand new accounts, means little.</li>
+          <li>Be careful with anyone who rushes you, refuses a middleman, or wants to move off-site right away.</li>
+          <li>Do not click login links someone sends you. Type the site address yourself.</li>
+          <li>Ask for the original email on account sales, and change every recovery option right after the transfer.</li>
+          <li>Reversible payments can be charged back. Agree on the method before anything moves.</li>
+          <li>Got scammed? Post in <a href="/f/scam-reports">Scam Reports</a> with screenshots and report the member's profile.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="box" id="listing">
+      <div class="box-head"><h2>Posting and managing listings</h2></div>
+      <div class="box-body">
+        <ul>
+          <li><a href="/sell">Post a listing</a> and pick the platform. Leave the price blank to take offers.</li>
+          <li><a href="/my/listings">My listings</a> lets you change status, edit and bump in one place.</li>
+          <li><b>Bump</b> moves an open listing to the top of its forum, once every 24 hours.</li>
+          <li><b>Save</b> a listing to get an alert when it is sold, closed or reopened.</li>
+          <li>The orange dot marks threads with activity since your last visit.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <aside>
+    <div class="box">
+      <div class="box-head"><h2>Lingo</h2></div>
+      <table>
+        <tbody>
+          <tr><td><span class="tag sell">WTS</span></td><td>Want to sell</td></tr>
+          <tr><td><span class="tag buy">WTB</span></td><td>Want to buy</td></tr>
+          <tr><td class="b">MM</td><td>Middleman</td></tr>
+          <tr><td class="b">OGE</td><td>Original email included</td></tr>
+          <tr><td class="b">C/O</td><td>Current offer</td></tr>
+          <tr><td class="b">BIN</td><td>Buy it now price</td></tr>
+          <tr><td class="b">PC</td><td>Price check</td></tr>
+          <tr><td class="b">Vouch</td><td>Positive feedback</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box">
+      <div class="box-head"><h2>Keyboard</h2></div>
+      <table>
+        <tbody>
+          <tr><td><kbd>/</kbd></td><td>Jump to search</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Submit the form you are typing in</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Close an open menu</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="box">
+      <div class="box-head"><h2>Formatting</h2></div>
+      <div class="box-body small">
+        <p>Posts are plain text. Links turn clickable. Start a line with <kbd>&gt;</kbd> to quote, or press Quote on a post.</p>
+      </div>
+    </div>
+  </aside>
+</div>
+<%- include('partials/footer') %>

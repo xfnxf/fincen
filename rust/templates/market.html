@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Market - Fincen{% endblock %}
+{% block crumbs %}<div class="crumbs"><a href="/">Forums</a> &rsaquo; <b>Market</b></div>{% endblock %}
+{% block content %}
+<div class="center-head">
+  <h1>The Market</h1>
+  <p>{{ total }} handle{% if total != 1 %}s{% endif %} across {{ platforms }} platforms.</p>
+</div>
+{% if !featured.is_empty() %}
+<div class="feat">
+  {% for listing in featured %}
+  <a class="feat-card" href="/t/{{ listing.id }}">
+    <span class="cap">{% if listing.listing_type == "buy" %}Wanted · {% endif %}{{ listing.forum_name }}{% if listing.listing_type == "sell" && listing.staff %} · Fincen stock{% endif %}</span>
+    <span class="feat-handle">@{{ listing.handle }}</span>
+    <span class="feat-price">{{ listing.price }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="tabs">
+  <a class="{% if !filters.stock %}on{% endif %}" href="/market">All listings</a>
+  <a class="{% if filters.stock %}on{% endif %}" href="/market?stock=1">Fincen stock</a>
+  <a href="/fragment">On Fragment</a>
+</div>
+<form class="filters" method="get" action="/market">
+  {% if filters.stock %}<input type="hidden" name="stock" value="1">{% endif %}
+  <input class="grow" name="q" value="{{ filters.q }}" maxlength="64" placeholder="Find a username" aria-label="Username or keyword">
+  <select name="platform" aria-label="Platform" data-autosubmit>
+    <option value="">All platforms</option>
+    {% for section in page.sections %}
+      {% for forum in section.forums %}
+        {% if forum.is_market %}<option value="{{ forum.slug }}"{% if filters.platform.as_str() == forum.slug.as_str() %} selected{% endif %}>{{ forum.name }}</option>{% endif %}
+      {% endfor %}
+    {% endfor %}
+  </select>
+  <select name="type" aria-label="Listing type" data-autosubmit>
+    <option value="">Any type</option>
+    <option value="sell"{% if filters.listing_type == "sell" %} selected{% endif %}>Selling</option>
+    <option value="buy"{% if filters.listing_type == "buy" %} selected{% endif %}>Buying</option>
+  </select>
+  <select name="status" aria-label="Status" data-autosubmit>
+    <option value="open"{% if filters.status == "open" %} selected{% endif %}>Open</option>
+    <option value="sold"{% if filters.status == "sold" %} selected{% endif %}>Sold</option>
+    <option value="closed"{% if filters.status == "closed" %} selected{% endif %}>Closed</option>
+    <option value="all"{% if filters.status == "all" %} selected{% endif %}>Any status</option>
+  </select>
+  <input class="short" name="max" value="{{ filters.max }}" inputmode="decimal" placeholder="Max $" aria-label="Maximum price in dollars">
+  <select name="sort" aria-label="Sort" data-autosubmit>
+    <option value="new"{% if filters.sort == "new" %} selected{% endif %}>Recently active</option>
+    <option value="low"{% if filters.sort == "low" %} selected{% endif %}>Cheapest first</option>
+    <option value="high"{% if filters.sort == "high" %} selected{% endif %}>Priciest first</option>
+  </select>
+  <button type="submit">Go</button>
+  {% if !filters.is_default() %}<a href="/market">Clear</a>{% endif %}
+</form>
+{% if !listings.is_empty() || featured.is_empty() %}
+<div class="box">
+  <table class="threads">
+    <thead><tr><th>Listing</th><th class="right">Price</th><th class="center hide-sm">Replies</th><th class="right hide-sm">Latest</th></tr></thead>
+    <tbody>
+      {% for listing in listings %}
+      <tr>
+        <td><div class="t-row"><div class="t-text">
+          <div class="t-title"><span class="tag {{ listing.listing_type }}">{{ listing.tag() }}</span><a href="/t/{{ listing.id }}">{% if listing.handle.is_empty() %}{{ listing.title }}{% else %}@{{ listing.handle }}{% endif %}</a>{% if listing.status != "open" %} <span class="chip st-{{ listing.status }}">{{ listing.status }}</span>{% endif %}</div>
+          <div class="t-meta">{{ listing.forum_name }} · <a href="/u/{{ listing.author }}">{{ listing.author }}</a></div>
+        </div></div></td>
+        <td class="right mid-cell"><span class="price">{{ listing.price }}</span></td>
+        <td class="center num hide-sm">{{ listing.reply_count }}</td>
+        <td class="right small hide-sm">{{ listing.last_post }}</td>
+      </tr>
+      {% else %}<tr><td class="empty" colspan="4">No listings match. Try fewer filters.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% if prev.is_some() || next.is_some() %}
+<nav class="pager" aria-label="Market pages">
+  {% if let Some(href) = prev %}<a href="{{ href }}">Previous</a>{% endif %}
+  {% if let Some(href) = next %}<a href="{{ href }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

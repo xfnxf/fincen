@@ -1,0 +1,202 @@
+<%- include('partials/header', { crumbs: [[thread.forum_name, '/f/' + thread.forum_slug], [thread.handle ? '@' + thread.handle : thread.title.slice(0, 50)]] }) %>
+<%
+  const mine = me && me.id === thread.user_id;
+  const canReply = !!me && (!thread.locked || isMod);
+  const opPost = { anchor: 'op', username: op.username, role: op.role, rep: op.rep, post_count: op.post_count, joined: op.created_at,
+    last_seen: op.last_seen, body: thread.body, created_at: thread.created_at, edited_at: thread.edited_at };
+%>
+<% if (thread.locked) { %><div class="notice">This thread is locked. No new replies.</div><% } %>
+
+<% if (extra) { %>
+  <div class="box">
+    <div class="listing">
+      <div class="listing-main">
+        <div class="cap"><%= thread.listing_type === 'buy' ? 'Wanted' : 'For sale' %> &middot; <a href="/f/<%= thread.forum_slug %>"><%= thread.forum_name %></a><% if (thread.listing_type === 'sell' && op.role !== 'member') { %> &middot; Fincen stock<% } %></div>
+        <h1><span id="handle">@<%= thread.handle %></span></h1>
+        <p class="lead"><%= thread.title %></p>
+        <% if (extra.checkoutOrderId || extra.checkoutStatus || (extra.checkoutApproved && !mine)) { %>
+          <div class="actions">
+            <% if (extra.checkoutOrderId) { %>
+              <a class="btn primary" href="/orders/<%= extra.checkoutOrderId %>">View test order</a>
+            <% } else if (extra.checkoutStatus) { %>
+              <span class="dim"><%= extra.checkoutStatus === 'paid_out' ? 'Sold in sandbox' : 'Reserved in sandbox' %></span>
+            <% } else if (me) { %>
+              <form method="post" action="/t/<%= thread.id %>/checkout">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button type="submit" class="primary">Buy now (test)</button>
+              </form>
+            <% } else { %>
+              <a class="btn primary" href="/login?next=<%= encodeURIComponent(path) %>">Log in for test checkout</a>
+            <% } %>
+          </div>
+        <% } %>
+        <% if (!mine) { %>
+          <div class="actions">
+            <% if (thread.status === 'open') { %>
+              <a class="btn primary" href="/messages/<%= op.username %>?about=<%= thread.id %>"><%= thread.listing_type === 'sell' ? 'Message seller' : 'Message ' + op.username %></a>
+            <% } %>
+            <% if (me) { %>
+              <form class="inline" method="post" action="/t/<%= thread.id %>/save">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button type="submit"><%= extra.saved ? 'Saved (remove)' : 'Save listing' %></button>
+              </form>
+            <% } else { %>
+              <a class="btn" href="/login?next=<%= encodeURIComponent(path) %>">Log in to save</a>
+            <% } %>
+          </div>
+        <% } %>
+        <div class="blue facts-blue">
+          <div><span>Price</span><span><%= money(thread.price_cents) %></span></div>
+          <div><span>Status</span><span><%= STATUSES[thread.status] %><% if (thread.status !== 'open' && thread.status_at) { %> since <%- time(thread.status_at) %><% } %></span></div>
+          <div><span>Listed</span><span><%- time(thread.created_at) %><% if (thread.bumped_at) { %> &middot; bumped <%- time(thread.bumped_at) %><% } %></span></div>
+          <div><span>Interest</span><span><%= thread.views %> views &middot; <%= thread.reply_count %> <%= thread.reply_count === 1 ? 'reply' : 'replies' %> &middot; <%= extra.saves %> saved</span></div>
+        </div>
+      </div>
+      <div class="listing-side">
+        <div class="cap"><%= thread.listing_type === 'buy' ? 'Buyer' : 'Seller' %></div>
+        <div class="side-name"><a href="/u/<%= op.username %>"><%= op.username %></a>
+          <% if (op.role !== 'member') { %><span class="role <%= op.role %>"><%= op.role === 'admin' ? 'Admin' : 'Mod' %></span><% } %>
+        </div>
+        <div class="dim small"><%= rank(op.rep, op.created_at) %><% if (online(op.last_seen)) { %> &middot; <span class="on-dot"></span>online<% } else { %> &middot; seen <%- time(op.last_seen) %><% } %></div>
+        <dl class="listing-member-stats">
+          <dt>Reputation</dt>
+          <dd class="b <%= op.rep > 0 ? 'good' : op.rep < 0 ? 'bad' : '' %>"><a class="rep-link" href="/u/<%= op.username %>#feedback" title="Read feedback"><%= signed(op.rep) %></a></dd>
+          <dt>Joined</dt>
+          <dd><%= date(op.created_at) %></dd>
+          <dt>Open listings</dt>
+          <dd><a class="listing-count" href="/market?seller=<%= encodeURIComponent(op.username) %>&amp;status=open" aria-label="View <%= op.username %>'s open listings"><%= extra.openCount %></a></dd>
+        </dl>
+        <div class="listing-feedback">
+          <a class="cap" href="/u/<%= op.username %>#feedback">Feedback</a>
+          <div class="listing-feedback-counts">
+            <a href="/u/<%= op.username %>?fb=pos#feedback"><b class="good"><%= extra.fb.pos %></b><span>Positive</span></a>
+            <a href="/u/<%= op.username %>?fb=neu#feedback"><b class="warn"><%= extra.fb.neu %></b><span>Neutral</span></a>
+            <a href="/u/<%= op.username %>?fb=neg#feedback"><b class="bad"><%= extra.fb.neg %></b><span>Negative</span></a>
+          </div>
+        </div>
+        <% if (!mine && op.rep < 1) { %>
+          <div class="small warn listing-warning">No positive feedback yet. Ask for a <a href="/f/middleman">staff middleman</a> and never pay first.</div>
+        <% } else if (!mine && extra.fb.neg) { %>
+          <div class="small warn listing-warning">Has negative feedback. Read it before dealing.</div>
+        <% } %>
+      </div>
+    </div>
+    <% if (mine || isMod) { %>
+      <div class="owner-bar">
+        <span class="lbl"><%= mine ? 'Your listing' : 'Staff' %></span>
+        <form class="inline actions" method="post" action="/t/<%= thread.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <select name="status">
+            <% for (const k in STATUSES) { %><option value="<%= k %>" <%= thread.status === k ? 'selected' : '' %>><%= STATUSES[k] %></option><% } %>
+          </select>
+          <button type="submit">Set status</button>
+        </form>
+        <% if (mine) { %>
+          <% if (extra.canBump) { %>
+            <form class="inline" method="post" action="/t/<%= thread.id %>/bump">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" title="Move to the top of the forum. Once every 24 hours.">Bump</button>
+            </form>
+          <% } else if (thread.status === 'open') { %><span class="dim small">Next bump in <%= Math.max(1, Math.ceil((extra.nextBump - Date.now()) / 3600000)) %> hr</span><% } %>
+        <% } %>
+        <a class="btn" href="/t/<%= thread.id %>/edit">Edit</a>
+        <% if (isMod && extra.checkoutEligible) { %>
+          <form class="inline" method="post" action="/t/<%= thread.id %>/checkout/approval">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button type="submit" name="enabled" value="<%= extra.checkoutApproved ? '0' : '1' %>"><%= extra.checkoutApproved ? 'Disable test checkout' : 'Approve collectible for test checkout' %></button>
+          </form>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+<% } else { %>
+  <div class="page-head">
+    <div>
+      <h1><%= thread.title %></h1>
+      <p><%= thread.reply_count %> replies &middot; <%= thread.views %> views</p>
+    </div>
+  </div>
+<% } %>
+
+<% if (isMod || mine) { %>
+  <div class="tabs">
+    <% if (isMod) { %>
+      <span class="lbl">Moderate</span>
+      <% for (const a of [thread.pinned ? 'unpin' : 'pin', thread.locked ? 'unlock' : 'lock']) { %>
+        <form class="inline" method="post" action="/t/<%= thread.id %>/mod">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="action" value="<%= a %>">
+          <button type="submit" class="sm"><%= a[0].toUpperCase() + a.slice(1) %></button>
+        </form>
+      <% } %>
+    <% } %>
+    <form class="inline" method="post" action="/t/<%= thread.id %>/delete" data-confirm="Delete this whole thread?">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" class="sm danger">Delete thread</button>
+    </form>
+    <% if (!extra) { %><a href="/t/<%= thread.id %>/edit">Edit thread</a><% } %>
+  </div>
+<% } %>
+
+<% if (extra) { %>
+  <section class="box listing-description" id="op" aria-labelledby="description-heading">
+    <div class="box-head">
+      <h2 id="description-heading">Listing description</h2>
+      <% if (thread.edited_at) { %><span class="dim small">Edited <%- time(thread.edited_at) %></span><% } %>
+    </div>
+    <div class="box-body body-text" id="body-op"><%- fmt(thread.body) %></div>
+    <% if (me) { %>
+      <%- include('partials/post-actions', { p: opPost, kind: 'thread', targetId: thread.id,
+        editUrl: (mine || isMod) ? '/t/' + thread.id + '/edit' : null, deleteAction: null, canReply }) %>
+    <% } %>
+  </section>
+<% } else if (pg.page === 1) { %>
+  <%- include('partials/post', { p: opPost, num: 1, link: '/t/' + thread.id + '#op', kind: 'thread', targetId: thread.id,
+    editUrl: (mine || isMod) ? '/t/' + thread.id + '/edit' : null, deleteAction: null, canReply }) %>
+<% } %>
+
+<div id="replies"></div>
+<%- include('partials/pager', { pg }) %>
+<% posts.forEach((r, i) => { %>
+  <% const own = me && me.id === r.user_id; %>
+  <%- include('partials/post', {
+    p: { anchor: 'p' + r.id, username: r.username, role: r.role, rep: r.rep, post_count: r.post_count, joined: r.joined,
+      last_seen: r.last_seen, body: r.body, created_at: r.created_at, edited_at: r.edited_at },
+    num: pg.offset + i + 2, link: pg.url(pg.page) + '#p' + r.id, kind: 'post', targetId: r.id,
+    editUrl: (own || isMod) ? '/p/' + r.id + '/edit' : null,
+    deleteAction: (own || isMod) ? '/p/' + r.id + '/delete' : null, canReply }) %>
+<% }) %>
+<% if (!posts.length && pg.page === 1) { %><p class="dim">No replies yet.</p><% } %>
+<%- include('partials/pager', { pg }) %>
+
+<% if (canReply) { %>
+  <form class="box" method="post" action="/t/<%= thread.id %>/reply">
+    <div class="box-head"><h2>Reply</h2></div>
+    <div class="box-body">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="field">
+        <textarea id="reply" name="body" maxlength="10000" required data-count data-draft="reply-<%= thread.id %>" placeholder="Write a reply..."></textarea>
+        
+      </div>
+      <button type="submit" class="primary">Post reply</button>
+    </div>
+  </form>
+<% } else if (!me) { %>
+  <div class="notice"><a href="/login?next=<%= encodeURIComponent(path) %>">Log in</a> or <a href="/register">register</a> to reply.</div>
+<% } %>
+
+<% if (extra && (extra.more.length || extra.similar.length)) { %>
+  <div class="cols-even">
+    <% for (const [label, list] of [['More from ' + op.username, extra.more], ['Similar ' + thread.forum_name + ' listings', extra.similar]]) { if (!list.length) continue; %>
+      <div class="box">
+        <div class="box-head"><h2><%= label %></h2></div>
+        <ul class="side-list">
+          <% for (const t of list) { %>
+            <li>
+              <span class="l"><span class="tag <%= t.listing_type %>"><%= LISTING_SHORT[t.listing_type] %></span><a href="/t/<%= t.id %>">@<%= t.handle %></a> <span class="dim small">by <%= t.author %></span></span>
+              <span class="price"><%= money(t.price_cents) %></span>
+            </li>
+          <% } %>
+        </ul>
+      </div>
+    <% } %>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

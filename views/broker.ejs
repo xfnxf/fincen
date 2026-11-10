@@ -1,0 +1,24 @@
+<%- include('partials/header', { crumbs: [['Market', '/market'], ['On Fragment', '/fragment'], ['Broker request']] }) %>
+<div class="narrow">
+  <div class="cap">Broker request</div>
+  <h1>@<%= item.handle %></h1>
+  <p class="dim"><%= item.price_kind === 'minimum_bid' ? 'Minimum bid' : 'Sale price' %> on Fragment: <%= item.price_ton.toLocaleString('en-US') %> TON. <a href="<%= item.url %>" target="_blank" rel="nofollow noopener noreferrer">View it there</a></p>
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form class="box" method="post" action="/broker">
+    <div class="box-body">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="handle" value="<%= item.handle %>">
+      <div class="field">
+        <label for="bb">Your budget</label>
+        <input id="bb" name="budget" maxlength="40" value="<%= v.budget || '' %>" placeholder="$500 or 200 TON">
+      </div>
+      <div class="field">
+        <label for="bn">Anything staff should know</label>
+        <textarea id="bn" name="note" maxlength="500" data-count><%= v.note || '' %></textarea>
+      </div>
+      <button type="submit" class="primary">Send request</button>
+      <div class="hint">Sending this costs nothing and commits you to nothing. A staff member will message you on Fincen to agree terms first.</div>
+    </div>
+  </form>
+</div>
+<%- include('partials/footer') %>

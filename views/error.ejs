@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<div class="narrow">
+  <div class="box">
+    <div class="box-head"><h2><%= status === 404 ? 'Not found' : status === 403 ? 'Not allowed' : status === 429 ? 'Slow down' : 'Error ' + status %></h2></div>
+    <div class="box-body">
+      <p><%= message %></p>
+      <div class="actions">
+        <button type="button" data-back>Go back</button>
+        <a href="/">Forum home</a>
+        <% if (status === 404) { %><a href="/market">Market</a><% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,71 @@
+<%- include('partials/header', { crumbs: [['My listings']] }) %>
+<div class="page-head">
+  <div><h1>My listings</h1></div>
+  <div class="actions">
+    <% if (canExport) { %><a class="btn" href="/my/listings/export">Export CSV</a><% } %>
+    <a class="btn primary" href="/sell">+ Post a listing</a>
+  </div>
+</div>
+<% if (insights) { %>
+  <section class="box">
+    <div class="box-head"><h2>Seller dashboard</h2></div>
+    <div class="box-body stat-row">
+      <div><b><%= insights.views %></b><span>Listing views</span></div>
+      <div><b><%= insights.saves %></b><span>Listing saves</span></div>
+      <div><b><%= insights.sold %></b><span>Marked sold</span></div>
+      <div><b><%= insights.test_sales %></b><span>Test sales</span></div>
+    </div>
+  </section>
+  <% if (listings.length) { %>
+    <form class="actions" id="bulk-listings" method="post" action="/my/listings/bulk">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button type="submit" name="status" value="open">Open selected</button>
+      <button type="submit" name="status" value="closed">Close selected</button>
+    </form>
+  <% } %>
+<% } %>
+<div class="box">
+  <table>
+    <thead><tr><th>Listing</th><th class="right">Price</th><th class="center hide-sm">Replies</th><th class="center hide-sm">Views</th><% if (insights) { %><th class="center hide-sm">Saves</th><% } %><th>Status</th><th class="right">Actions</th></tr></thead>
+    <tbody>
+      <% if (!listings.length) { %><tr><td class="empty" colspan="<%= insights ? 7 : 6 %>">You have no listings. <a href="/sell">Post your first one.</a></td></tr><% } %>
+      <% for (const t of listings) { %>
+        <tr class="<%= t.status !== 'open' ? 'muted' : '' %>">
+          <td>
+            <div class="t-title"><% if (insights && t.status !== 'sold') { %><input type="checkbox" form="bulk-listings" name="listing" value="<%= t.id %>" aria-label="Select @<%= t.handle %>"><% } %><span class="tag <%= t.listing_type %>"><%= LISTING_SHORT[t.listing_type] %></span><a class="handle" href="/t/<%= t.id %>">@<%= t.handle %></a><% if (t.test_sale) { %> <span class="chip">Test sale</span><% } %></div>
+            <div class="t-meta"><span class="dot p-<%= t.forum_slug %>"></span><%= t.forum_name %> &middot; <%= t.title %> &middot; active <%- time(t.last_post_at) %></div>
+          </td>
+          <td class="right price"><%= money(t.price_cents) %></td>
+          <td class="center num hide-sm"><%= t.reply_count %></td>
+          <td class="center num hide-sm"><%= t.views %></td>
+          <% if (insights) { %><td class="center num hide-sm"><%= t.saves %></td><% } %>
+          <td>
+            <form class="actions" method="post" action="/t/<%= t.id %>/status">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="next" value="/my/listings">
+              <select name="status" data-autosubmit>
+                <% for (const k in STATUSES) { %><option value="<%= k %>" <%= t.status === k ? 'selected' : '' %>><%= STATUSES[k] %></option><% } %>
+              </select>
+              <noscript><button type="submit" class="sm">Set</button></noscript>
+            </form>
+          </td>
+          <td class="right nowrap">
+            <% if (t.canBump) { %>
+              <form class="inline" method="post" action="/t/<%= t.id %>/bump">
+                <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="next" value="/my/listings">
+                <button type="submit" class="sm">Bump</button>
+              </form>
+            <% } else if (t.status === 'open') { %><span class="dim small">bumped</span><% } %>
+            <a class="btn sm" href="/t/<%= t.id %>/edit">Edit</a>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<% if (threads.length) { %>
+  <div class="box">
+    <div class="box-head"><h2>My other threads</h2></div>
+    <%- include('partials/threadlist', { threads, showForum: true, showPrice: false }) %>
+  </div>
+<% } %>
+<%- include('partials/footer') %>

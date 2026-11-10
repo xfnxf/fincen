@@ -1,0 +1,45 @@
+<%- include('partials/header') %>
+<div class="narrow">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form class="box" method="post" action="/<%= mode %>">
+    <div class="box-head"><h2><%= mode === 'register' ? 'Create an account' : 'Log in' %></h2></div>
+    <div class="box-body">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label for="au">Username</label>
+        <input id="au" name="username" value="<%= username %>" maxlength="20" required autofocus autocomplete="username">
+        <% if (mode === 'register') { %><div class="hint">3 to 20 characters: letters, numbers, _ and .</div><% } %>
+      </div>
+      <div class="field">
+        <label for="ap">Password</label>
+        <input id="ap" type="password" name="password" required <%= mode === 'register' ? 'minlength=8' : '' %> autocomplete="<%= mode === 'register' ? 'new-password' : 'current-password' %>">
+        <% if (mode === 'register') { %><div class="hint">At least 8 characters.</div><% } %>
+      </div>
+      <% if (mode === 'register') { %>
+        <div class="field">
+          <label for="ap2">Repeat password</label>
+          <input id="ap2" type="password" name="password2" required autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="ae">Email (optional)</label>
+          <input id="ae" name="email" value="<%= locals.email || '' %>" maxlength="254" autocomplete="email" inputmode="email">
+          <div class="hint">Only used to reset your password. Never shown to anyone. Without it a lost password cannot be recovered.</div>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" name="agree" value="1" required>
+            <span>I have read the <a href="/rules" target="_blank">rules</a>. I will not list stolen or hacked accounts.</span></label>
+        </div>
+      <% } %>
+      <div class="actions">
+        <button type="submit" class="primary"><%= mode === 'register' ? 'Register' : 'Log in' %></button>
+        <% if (mode === 'register') { %>
+          <span class="dim">Have an account? <a href="/login">Log in</a></span>
+        <% } else { %>
+          <span class="dim"><a href="/forgot">Forgot password?</a> &middot; New here? <a href="/register">Register</a></span>
+        <% } %>
+      </div>
+    </div>
+  </form>
+</div>
+<%- include('partials/footer') %>

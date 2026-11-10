@@ -1,0 +1,26 @@
+<%- include('partials/header', { crumbs: [['Staff']] }) %>
+<div class="page-head"><div><h1>Staff</h1></div></div>
+<div class="notice">
+  Impersonation is the most common scam. Real staff are listed on this page only. Before trusting a "middleman" on Discord or Telegram,
+  send them a message <b>on this site</b> from their profile here and have them confirm.
+</div>
+<div class="box">
+  <table>
+    <thead><tr><th>Member</th><th>Role</th><th class="center hide-sm">Rep</th><th class="hide-sm">Contact</th><th class="right">Status</th><th></th></tr></thead>
+    <tbody>
+      <% if (!staff.length) { %><tr><td class="empty" colspan="6">No staff yet.</td></tr><% } %>
+      <% for (const u of staff) { %>
+        <tr>
+          <td><a class="b" href="/u/<%= u.username %>"><%= u.username %></a></td>
+          <td><span class="role <%= u.role %>"><%= u.role === 'admin' ? 'Administrator' : 'Moderator' %></span></td>
+          <td class="center num hide-sm"><%= signed(u.rep) %></td>
+          <td class="hide-sm small"><%= u.contact || '-' %></td>
+          <td class="right num"><% if (online(u.last_seen)) { %><span class="on-dot"></span>online<% } else { %><%- time(u.last_seen) %><% } %></td>
+          <td class="right"><% if (me && me.username !== u.username) { %><a href="/messages/<%= u.username %>">Message</a><% } %></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<p class="dim">Need a deal held? Post in <a href="/f/middleman">Middleman Requests</a>. Problem with a member? Use the Report link on their post or profile.</p>
+<%- include('partials/footer') %>

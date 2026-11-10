@@ -1,0 +1,59 @@
+<%- include('partials/header', { crumbs: [['My Deals', '/orders'], ['Order #' + order.id]] }) %>
+<% const checkout = actions.some(([key]) => key === 'pay'); %>
+<div class="page-head">
+  <div><h1><%= checkout ? 'Listing checkout' : 'Test order #' + order.id %></h1><p><%= status %> &middot; <a href="/t/<%= order.thread_id %>">@<%= order.handle %></a></p></div>
+  <% if (isMod) { %><a class="btn" href="/orders?review=1">Review test orders</a><% } %>
+</div>
+<div class="notice">Sandbox order. Payments, transfers, and payouts are simulated. Use sample references here.</div>
+<div class="box">
+  <div class="box-head"><h2>Order summary</h2></div>
+  <div class="box-body">
+    <p>Buyer total <b><%= money(order.price_cents) %></b></p>
+    <p>Seller payout <b><%= money(order.price_cents) %></b></p>
+    <p><b><%= nextStep %></b></p>
+    <% if (checkout) { %><p>Due today <b>$0</b> &middot; Simulated payment</p><% } %>
+    <% if (order.status === 'reserved') { %><p>Your reservation ends <time datetime="<%= new Date(order.expires_at).toISOString() %>"><%= new Date(order.expires_at).toISOString().slice(11, 16) %> UTC</time>.</p><% } %>
+    <% if (order.delivery_ref) { %><p class="body-text"><b>Transfer reference</b> &middot; <%= order.delivery_ref %></p><% } %>
+  </div>
+</div>
+<% if (actions.length) { %>
+  <div class="box">
+    <div class="box-head"><h2><%= checkout ? 'Confirm purchase' : 'Order actions' %></h2></div>
+    <div class="box-body actions">
+      <% for (const [key, action] of actions) { %>
+        <form method="post" action="/orders/<%= order.id %>">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <% if (action.field) { %>
+            <div class="field"><label for="order-<%= key %>"><%= action.field %></label><input id="order-<%= key %>" name="detail" maxlength="500" required></div>
+          <% } %>
+          <button type="submit" name="action" value="<%= key %>"<% if (key === 'pay') { %> class="primary"<% } %>><%= key === 'pay' ? 'Confirm test purchase' : action.label %></button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+<section class="box" aria-labelledby="order-timeline">
+  <div class="box-head"><h2 id="order-timeline">Order timeline</h2></div>
+  <ul class="side-list">
+    <% for (const event of timeline) { %><li><span><%= statuses[event.status] %></span><span class="dim"><%- time(event.created_at) %></span></li><% } %>
+  </ul>
+</section>
+<% if (order.dispute_note) { %>
+  <section class="box" id="dispute" aria-labelledby="dispute-heading">
+    <div class="box-head"><h2 id="dispute-heading">Dispute ticket #<%= order.id %></h2><span class="dim"><%= order.status === 'disputed' ? 'Open' : 'Closed' %></span></div>
+    <div class="box-body body-text"><b>Buyer’s reason</b> &middot; <%= order.dispute_note %></div>
+    <% if (disputeReplies.length) { %><div class="chat">
+      <% for (const reply of disputeReplies) { %>
+        <div class="msg<%= reply.author_id === me.id ? ' mine' : '' %>"><%- fmt(reply.body) %><span class="when"><%= reply.username %> &middot; <%- time(reply.created_at) %></span></div>
+      <% } %>
+    </div><% } %>
+    <% if (order.status === 'disputed') { %>
+      <form class="box-body" method="post" action="/orders/<%= order.id %>/dispute/replies">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <div class="field"><label for="dispute-reply">Reply or add evidence links</label><textarea id="dispute-reply" name="body" maxlength="2000" rows="4" required></textarea></div>
+        <button type="submit">Send reply</button>
+      </form>
+    <% } %>
+  </section>
+<% } %>
+<%- include('partials/footer') %>

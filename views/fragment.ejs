@@ -1,0 +1,78 @@
+<%- include('partials/header', { crumbs: [['Market', '/market'], ['On Fragment']] }) %>
+<% const pageLink = (next) => {
+  const params = new URLSearchParams({ q: s, sort, status, len: len || '', offset: next });
+  return '/fragment?' + params;
+}; %>
+<div class="center-head">
+  <h1>On Fragment</h1>
+  <p>Telegram usernames and sale history from Fragment.</p>
+</div>
+<div class="notice">
+  Search for a username to see its status on Fragment, including sold or unavailable names. Prices and minimum bids are in TON.
+</div>
+
+<div class="tabs">
+  <a href="/market">All listings</a>
+  <a href="/market?stock=1">Fincen stock</a>
+  <a class="on" href="/fragment">On Fragment</a>
+  <form class="filters push" method="get" action="/fragment">
+    <input name="q" value="<%= s %>" maxlength="33" placeholder="Find a username" aria-label="Username">
+    <select name="status" aria-label="Status" data-autosubmit>
+      <option value="">All statuses</option>
+      <% for (const [value, label] of Object.entries(statuses)) { %><option value="<%= value %>" <%= status === value ? 'selected' : '' %>><%= label %></option><% } %>
+    </select>
+    <select name="len" aria-label="Length" data-autosubmit>
+      <option value="">Any length</option>
+      <% for (const n of [4, 5, 6, 7, 8]) { %><option value="<%= n %>" <%= len === n ? 'selected' : '' %>><%= n %> letters</option><% } %>
+    </select>
+    <select name="sort" aria-label="Sort" data-autosubmit>
+      <option value="new" <%= sort === 'new' ? 'selected' : '' %>>Ending soonest</option>
+      <option value="low" <%= sort === 'low' ? 'selected' : '' %>>Cheapest first</option>
+      <option value="high" <%= sort === 'high' ? 'selected' : '' %>>Priciest first</option>
+      <option value="az" <%= sort === 'az' ? 'selected' : '' %>>A to Z</option>
+    </select>
+    <button type="submit">Go</button>
+  </form>
+</div>
+
+<% if (lookupUnavailable) { %>
+  <div class="notice">Live results are temporarily unavailable. Any results below are from the saved index. <a href="<%= lookupUrl %>" target="_blank" rel="nofollow noopener noreferrer">Check on Fragment</a>.</div>
+<% } %>
+<div class="box">
+  <table>
+    <thead><tr><th>Username</th><th class="right">Price</th><th class="right hide-sm">Date</th><th class="right">Where</th></tr></thead>
+    <tbody>
+      <% if (!rows.length) { %>
+        <tr><td class="empty" colspan="4">
+          <% if (searchOnly && !s) { %>Enter a username to check its availability.
+          <% } else if (lookupUnavailable) { %>No saved results match.
+          <% } else { %>No matching results from Fragment. <a href="<%= lookupUrl %>" target="_blank" rel="nofollow noopener noreferrer">Check on Fragment</a>.<% } %>
+        </td></tr>
+      <% } %>
+      <% for (const r of rows) { %>
+        <tr>
+          <td><span class="t-title">@<%= r.handle %></span><div class="t-meta"><%= r.status %></div></td>
+          <td class="right nowrap">
+            <% if (r.price === null) { %>&mdash;<% } else { %>
+              <%= r.price.toLocaleString('en-US') %> TON
+              <% if (r.kind === 'minimum_bid' || r.status === 'Sold') { %><br><span class="dim small"><%= r.status === 'Sold' ? 'Sale price' : 'Minimum bid' %></span><% } %>
+            <% } %>
+          </td>
+          <td class="right num hide-sm"><% if (r.date) { %><%= date(r.date) %><% } %></td>
+          <td class="right">
+            <% if (!lookupUnavailable && canBroker(r)) { %><a class="btn sm" href="/broker?h=<%= r.handle %>">Have Fincen broker</a><% } %>
+            <a href="<%= r.url %>" target="_blank" rel="nofollow noopener noreferrer">View on Fragment</a>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/pager', { pg }) %>
+<% if (offset || (nextOffset && pg.page === pg.pages)) { %>
+  <nav class="pager" aria-label="Fragment result batches">
+    <% if (offset) { %><a href="<%= pageLink('') %>">Start of results</a><% } %>
+    <% if (nextOffset && nextOffset !== offset && pg.page === pg.pages) { %><a href="<%= pageLink(nextOffset) %>">More from Fragment</a><% } %>
+  </nav>
+<% } %>
+<%- include('partials/footer') %>

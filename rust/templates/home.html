@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="hero-bar">
+    <h1 class="cap">Latest listings</h1>
+    <div class="actions">
+      <a class="btn primary" href="/market">Browse the market</a>
+    </div>
+  </div>
+  {% if !home.recent.is_empty() %}
+  <div class="blue">
+    {% for listing in home.recent.iter().take(3) %}
+    <a href="/t/{{ listing.id }}"><span>@{{ listing.handle }} <span class="soft">&middot; {{ listing.forum_name }}</span></span><span>{{ listing.price }}</span></a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="dim">No open listings yet.</p>
+  {% endif %}
+</section>
+<div class="cols">
+  <div>
+    {% for section in page.sections %}
+    <div class="box forum-section{% if section.name == "Marketplace" %} market-section{% endif %}">
+      <div class="box-head">
+        <h2>{{ section.name }}</h2>
+        {% if section.name == "Marketplace" %}<a class="more" href="/market">All listings</a>{% endif %}
+      </div>
+      <table class="forum-table">
+        <colgroup><col class="forum-col"><col class="count-col hide-sm"><col class="count-col hide-sm"><col class="latest-col"></colgroup>
+        <thead><tr><th>Forum</th><th class="center hide-sm">Threads</th><th class="center hide-sm">Replies</th><th class="right">Latest</th></tr></thead>
+        <tbody>
+          {% for forum in section.forums %}
+          <tr>
+            <td>
+              <div class="t-title">{% if forum.is_market %}<span class="dot p-{{ forum.slug }}"></span>{% endif %}<a href="/f/{{ forum.slug }}">{{ forum.name }}</a></div>
+              {% if !forum.is_market %}<div class="t-meta">{{ forum.description }}</div>{% endif %}
+            </td>
+            <td class="center num hide-sm">{{ forum.thread_count }}</td>
+            <td class="center num hide-sm">{{ forum.reply_count }}</td>
+            <td class="right small">
+              {% match forum.latest %}
+              {% when Some with (latest) %}
+              <a href="/t/{{ latest.id }}">{{ latest.label }}</a><br><span class="dim">{{ latest.time }} by {{ latest.user }}</span>
+              {% when None %}<span class="dim">No threads yet</span>
+              {% endmatch %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+    <div class="box">
+      <div class="box-head"><h2>Who's online</h2><span class="dim small">{{ home.online.len() }} in the last 10 minutes</span></div>
+      <div class="box-body">
+        <p>
+          {% for member in home.online %}
+            {% if !loop.first %}, {% endif %}<a href="/u/{{ member.username }}" class="role {{ member.role }}">{{ member.username }}</a>
+          {% else %}<span class="dim">Nobody right now.</span>{% endfor %}
+        </p>
+        <div class="stat-row">
+          <div><b>{{ home.stats.listings }}</b><span>open listings</span></div>
+          <div><b>{{ home.stats.threads }}</b><span>threads</span></div>
+          <div><b>{{ home.stats.posts }}</b><span>replies</span></div>
+          <div><b>{{ home.stats.users }}</b><span>members</span></div>
+          {% if let Some(username) = home.stats.newest %}
+          <div><b><a href="/u/{{ username }}">{{ username }}</a></b><span>newest member</span></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside>
+    <div class="box">
+      <div class="box-head"><h2>Quick links</h2></div>
+      <ul class="side-list">
+        <li><a href="/sell">Post a listing</a></li>
+        <li><a href="/f/middleman">Request a middleman</a></li>
+        <li><a href="/f/price-checks">Get a price check</a></li>
+        <li><a href="/help">Buying and selling guide</a></li>
+      </ul>
+    </div>
+    {% if home.recent.len() > 3 %}
+    <div class="box">
+      <div class="box-head"><h2>More recent listings</h2><a class="more" href="/market">All &rsaquo;</a></div>
+      <ul class="side-list">
+        {% for listing in home.recent.iter().skip(3) %}
+        <li>
+          <span class="l"><span class="dot p-{{ listing.forum_slug }}" title="{{ listing.forum_name }}"></span><span class="tag {{ listing.listing_type }}">{{ listing.tag() }}</span><a href="/t/{{ listing.id }}">@{{ listing.handle }}</a></span>
+          <span class="price">{{ listing.price }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="box">
+      <div class="box-head"><h2>Recently sold</h2></div>
+      <ul class="side-list">
+        {% for listing in home.sold %}
+        <li>
+          <span class="l"><span class="dot p-{{ listing.forum_slug }}" title="{{ listing.forum_name }}"></span><a href="/t/{{ listing.id }}">@{{ listing.handle }}</a></span>
+          <span class="dim">{{ listing.price }}</span>
+        </li>
+        {% else %}<li class="dim">Nothing sold yet.</li>{% endfor %}
+      </ul>
+    </div>
+    <div class="box">
+      <div class="box-head"><h2>Top traders</h2><a class="more" href="/members">Members &rsaquo;</a></div>
+      <ul class="side-list">
+        {% for member in home.traders %}
+        <li><span class="l"><span class="dim">{{ loop.index }}.</span> <a href="/u/{{ member.username }}">{{ member.username }}</a></span><span class="good b">{{ member.signed_rep() }}</span></li>
+        {% else %}<li class="dim">No feedback left yet.</li>{% endfor %}
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}

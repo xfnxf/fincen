@@ -1,0 +1,13 @@
+<%- include('partials/header', { crumbs: [['Post a listing']] }) %>
+<div class="mid">
+  <h1>Post a listing</h1>
+  <p class="dim">Which platform is the username on? Selling and buying both go in the same forum.</p>
+  <div class="choose">
+    <% for (const p of platforms) { %>
+      <a href="/f/<%= p.slug %>/new"><b><span class="dot p-<%= p.slug %>"></span><%= p.name %></b><span class="dim small">New <%= p.name %> listing</span></a>
+    <% } %>
+  </div>
+  <p></p>
+  <p class="dim">Not a listing? Ask for a <a href="/f/price-checks/new">price check</a>, request a <a href="/f/middleman/new">middleman</a>, or post in <a href="/f/general/new">General Discussion</a>.</p>
+</div>
+<%- include('partials/footer') %>

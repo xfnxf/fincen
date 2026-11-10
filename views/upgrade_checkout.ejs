@@ -1,0 +1,19 @@
+<%- include('partials/header', { crumbs: [['Membership upgrades', '/upgrades'], ['Checkout']] }) %>
+<div class="narrow">
+  <h1>Membership checkout</h1>
+  <div class="notice">Sandbox checkout. You pay $0 today. Your test membership lasts 30 days and does not renew.</div>
+  <form class="box" method="post" action="/upgrades/checkout/<%= planKey %>">
+    <div class="box-head"><h2><%= plan.name %> membership</h2><span><%= money(plan.price) %> / month</span></div>
+    <div class="box-body">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <p>Account <b><%= me.username %></b> &middot; Current tier <b><%= currentPlan.name %></b></p>
+      <ul><% for (const perk of plan.perks) { %><li><%= perk %></li><% } %></ul>
+      <p>Due today <b>$0</b></p>
+      <div class="actions">
+        <button class="primary" type="submit">Confirm test purchase</button>
+        <a class="btn" href="/upgrades">Back to plans</a>
+      </div>
+    </div>
+  </form>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="<%= theme %>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= title ? title + ' - ' + site : site + ' - username marketplace' %></title>
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<% const here = path.split('?')[0]; const on = (p) => (here === p ? 'on' : '');
+   const themeLabel = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'; %>
+<header class="top">
+  <div class="wrap top-in">
+    <% const cur = allForums.find((p) => p.slug === navSlug); %>
+    <nav class="nav" aria-label="Main navigation">
+      <details class="menu">
+        <summary class="<%= cur || here === '/' ? 'on' : '' %>"><% if (cur) { %><% if (cur.is_market) { %><span class="dot p-<%= cur.slug %>"></span><% } %><%= cur.name %><% } else { %>Forums<% } %></summary>
+        <div class="menu-list plat-list">
+          <a class="<%= on('/') %>" href="/">All forums</a>
+          <% let grp = null; for (const p of allForums) { %>
+            <% if (p.section !== grp) { grp = p.section; %><div class="menu-label"><%= grp %></div><% } %>
+            <a class="<%= navSlug === p.slug ? 'on' : '' %>" href="/f/<%= p.slug %>"><% if (p.is_market) { %><span class="dot p-<%= p.slug %>"></span><% } %><%= p.name %></a>
+          <% } %>
+        </div>
+      </details>
+      <a class="<%= on('/market') %>" href="/market">Market</a>
+      <a class="<%= on('/members') %>" href="/members">Members</a>
+      <a class="<%= on('/help') %>" href="/help">Help</a>
+      <% if (checkoutEnabled) { %><a class="<%= here.startsWith('/upgrades') ? 'on' : '' %>" href="/upgrades">Upgrades</a><% } %>
+      <form class="search" action="/search" method="get">
+        <input type="search" name="q" id="q" aria-label="Search forum" value="<%= searchQ %>" placeholder="Search" title="Search usernames, threads and members. Press / to jump here." maxlength="64">
+        <kbd>/</kbd>
+      </form>
+    </nav>
+    <a class="logo" href="/" aria-label="Home"><%- include('sunburst') %></a>
+    <div class="top-right">
+    <div class="user">
+      <% if (me) { %>
+        <a class="ico <%= on('/notifications') %>" href="/notifications">Alerts<% if (alerts) { %><span class="count"><%= alerts %></span><% } %></a>
+        <a class="ico <%= on('/messages') %>" href="/messages">Inbox<% if (unread) { %><span class="count"><%= unread %></span><% } %></a>
+        <% if (isMod) { %><a class="ico <%= on('/mod') %>" href="/mod">Queue<% if (openReports) { %><span class="count"><%= openReports %></span><% } %></a><% } %>
+        <a class="btn primary" href="/sell">Post listing</a>
+        <details class="menu">
+          <summary class="me"><span class="av av-<%= me.username.charCodeAt(0) % 6 %>"><%= me.username[0].toUpperCase() %></span></summary>
+          <div class="menu-list">
+            <div class="menu-label"><%= me.username %></div>
+            <a href="/u/<%= me.username %>">My profile</a>
+            <a href="/my/listings">My listings</a>
+            <% if (checkoutEnabled) { %>
+              <a href="/orders">My Deals</a>
+              <a href="/upgrades">Membership upgrades</a>
+            <% } %>
+            <a href="/saved">Saved listings</a>
+            <a href="/settings">Settings</a>
+            <hr>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="<%= themeLabel %>" title="<%= themeLabel %>"><span class="theme-icon" aria-hidden="true"></span></button>
+            <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit">Log out</button></form>
+          </div>
+        </details>
+      <% } else { %>
+        <button type="button" class="link theme-toggle" data-theme-toggle aria-label="<%= themeLabel %>" title="<%= themeLabel %>"><span class="theme-icon" aria-hidden="true"></span></button>
+        <a href="/login?next=<%= encodeURIComponent(path) %>">Log in</a>
+        <a class="btn primary" href="/register">Sign up</a>
+      <% } %>
+    </div>
+    </div>
+  </div>
+</header>
+<div class="wrap">
+  <% if (locals.crumbs) { %>
+    <div class="crumbs">
+      <a href="/">Forums</a>
+      <% for (const c of crumbs) { %> &rsaquo; <% if (c[1]) { %><a href="<%= c[1] %>"><%= c[0] %></a><% } else { %><b><%= c[0] %></b><% } %><% } %>
+    </div>
+  <% } %>
+  <main>
+    <% if (flash) { %><div class="flash"><%= flash %></div><% } %>

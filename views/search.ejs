@@ -1,0 +1,33 @@
+<%- include('partials/header', { crumbs: [['Search']] }) %>
+<div class="page-head">
+  <div>
+    <h1>Search<%= s ? ': ' + s : '' %></h1>
+    <p><% if (s.length < 2) { %>Type at least 2 characters in the box at the top.<% } else { %><%= pg.total %> thread<%= pg.total === 1 ? '' : 's' %>, <%= members.length %> member<%= members.length === 1 ? '' : 's' %><% } %></p>
+  </div>
+  <% if (s.length >= 2) { %><a class="btn" href="/market?q=<%= encodeURIComponent(s) %>&status=all">Open in market filters</a><% } %>
+</div>
+<% if (s.length >= 2) { %>
+  <% if (members.length) { %>
+    <div class="box">
+      <div class="box-head"><h2>Members</h2></div>
+      <table>
+        <tbody>
+          <% for (const u of members) { %>
+            <tr>
+              <td><a class="b" href="/u/<%= u.username %>"><%= u.username %></a>
+                <% if (u.role !== 'member') { %><span class="role <%= u.role %>"><%= u.role === 'admin' ? 'Admin' : 'Mod' %></span><% } %>
+                <span class="dim small">&middot; <%= rank(u.rep, u.created_at) %></span></td>
+              <td class="right num">rep <b class="<%= u.rep > 0 ? 'good' : u.rep < 0 ? 'bad' : '' %>"><a class="rep-link" href="/u/<%= u.username %>#feedback" title="Read feedback"><%= signed(u.rep) %></a></b> &middot; <%= u.post_count %> posts</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+  <div class="box">
+    <div class="box-head"><h2>Threads and listings</h2></div>
+    <%- include('partials/threadlist', { threads, showForum: true, emptyText: 'No threads match. Usernames are matched by any part of the name.' }) %>
+  </div>
+  <%- include('partials/pager', { pg }) %>
+<% } %>
+<%- include('partials/footer') %>

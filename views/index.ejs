@@ -1,0 +1,127 @@
+<%- include('partials/header') %>
+  <section class="hero">
+    <div class="hero-bar">
+      <h1 class="cap">Latest listings</h1>
+      <div class="actions">
+        <a class="btn primary" href="/market">Browse the market</a>
+        <% if (me) { %>
+          <a class="btn solid" href="/sell">Post a listing</a>
+        <% } %>
+      </div>
+    </div>
+    <% if (recent.length) { %>
+      <div class="blue">
+        <% for (const t of recent.slice(0, 3)) { %>
+          <a href="/t/<%= t.id %>"><span>@<%= t.handle %> <span class="soft">&middot; <%= t.forum_name %></span></span><span><%= money(t.price_cents) %></span></a>
+        <% } %>
+      </div>
+    <% } else { %>
+      <p class="dim">No open listings yet.</p>
+    <% } %>
+  </section>
+<div class="cols">
+  <div>
+    <% for (const s of sections) { %>
+      <div class="box forum-section <%= s.name === 'Marketplace' ? 'market-section' : '' %>">
+        <div class="box-head">
+          <h2><%= s.name %></h2>
+          <% if (s.name === 'Marketplace') { %><a class="more" href="/market">All listings</a><% } %>
+        </div>
+        <table class="forum-table">
+          <colgroup><col class="forum-col"><col class="count-col hide-sm"><col class="count-col hide-sm"><col class="latest-col"></colgroup>
+          <thead>
+            <tr><th>Forum</th><th class="center hide-sm">Threads</th><th class="center hide-sm">Replies</th><th class="right">Latest</th></tr>
+          </thead>
+          <tbody>
+            <% for (const f of s.forums) { %>
+              <tr>
+                <td>
+                  <div class="t-title <%= f.latest && f.latest.last_post_at > since ? 'unread' : '' %>">
+                    <% if (f.is_market) { %><span class="dot p-<%= f.slug %>"></span><% } %><a href="/f/<%= f.slug %>"><%= f.name %></a>
+                  </div>
+                  <% if (!f.is_market) { %><div class="t-meta"><%= f.description %></div><% } %>
+                </td>
+                <td class="center num hide-sm"><%= f.thread_count %></td>
+                <td class="center num hide-sm"><%= f.reply_count %></td>
+                <td class="right small">
+                  <% if (f.latest) { %>
+                    <a href="/t/<%= f.latest.id %>"><%= f.latest.handle ? '@' + f.latest.handle : f.latest.title.slice(0, 32) %></a><br>
+                    <span class="dim"><%- time(f.latest.last_post_at) %> by <%= f.latest.last_user %></span>
+                  <% } else { %><span class="dim">No threads yet</span><% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+
+    <div class="box">
+      <div class="box-head"><h2>Who's online</h2><span class="dim small"><%= onlineUsers.length %> in the last 10 minutes</span></div>
+      <div class="box-body">
+        <p>
+          <% if (!onlineUsers.length) { %><span class="dim">Nobody right now.</span><% } %>
+          <% onlineUsers.forEach((u, i) => { %><%= i ? ', ' : '' %><a href="/u/<%= u.username %>" class="<%= u.role !== 'member' ? 'role ' + u.role : '' %>"><%= u.username %></a><% }) %>
+        </p>
+        <div class="stat-row">
+          <div><b><%= stats.listings %></b><span>open listings</span></div>
+          <div><b><%= stats.threads %></b><span>threads</span></div>
+          <div><b><%= stats.posts %></b><span>replies</span></div>
+          <div><b><%= stats.users %></b><span>members</span></div>
+          <% if (newest) { %><div><b><a href="/u/<%= newest.username %>"><%= newest.username %></a></b><span>newest member</span></div><% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <div class="box-head"><h2>Quick links</h2></div>
+      <ul class="side-list">
+        <li><a href="/sell">Post a listing</a></li>
+        <% if (me) { %>
+          <li><a href="/my/listings">My listings</a></li>
+          <li><a href="/saved">Saved listings</a></li>
+        <% } %>
+        <li><a href="/f/middleman">Request a middleman</a></li>
+        <li><a href="/f/price-checks">Get a price check</a></li>
+        <li><a href="/help">Buying and selling guide</a></li>
+      </ul>
+    </div>
+    <% if (recent.length > 3) { %>
+    <div class="box">
+      <div class="box-head"><h2>More recent listings</h2><a class="more" href="/market">All &rsaquo;</a></div>
+      <ul class="side-list">
+        <% for (const t of recent.slice(3)) { %>
+          <li>
+            <span class="l"><span class="dot p-<%= t.forum_slug %>" title="<%= t.forum_name %>"></span><span class="tag <%= t.listing_type %>"><%= LISTING_SHORT[t.listing_type] %></span><a href="/t/<%= t.id %>">@<%= t.handle %></a></span>
+            <span class="price"><%= money(t.price_cents) %></span>
+          </li>
+        <% } %>
+      </ul>
+    </div>
+    <% } %>
+    <div class="box">
+      <div class="box-head"><h2>Recently sold</h2></div>
+      <ul class="side-list">
+        <% if (!sold.length) { %><li class="dim">Nothing sold yet.</li><% } %>
+        <% for (const t of sold) { %>
+          <li>
+            <span class="l"><span class="dot p-<%= t.forum_slug %>" title="<%= t.forum_name %>"></span><a href="/t/<%= t.id %>">@<%= t.handle %></a></span>
+            <span class="dim"><%= money(t.price_cents) %></span>
+          </li>
+        <% } %>
+      </ul>
+    </div>
+    <div class="box">
+      <div class="box-head"><h2>Top traders</h2><a class="more" href="/members">Members &rsaquo;</a></div>
+      <ul class="side-list">
+        <% if (!top.length) { %><li class="dim">No feedback left yet.</li><% } %>
+        <% top.forEach((u, i) => { %>
+          <li><span class="l"><span class="dim"><%= i + 1 %>.</span> <a href="/u/<%= u.username %>"><%= u.username %></a></span><span class="good b"><a class="rep-link" href="/u/<%= u.username %>#feedback" title="Read feedback"><%= signed(u.rep) %></a></span></li>
+        <% }) %>
+      </ul>
+    </div>
+  </aside>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,11 @@
+<% if (pg && pg.pages > 1) { %>
+  <div class="pager">
+    <% if (pg.page > 1) { %><a href="<%= pg.url(pg.page - 1) %>" rel="prev">&lsaquo; Prev</a><% } %>
+    <% let prev = 0; for (let n = 1; n <= pg.pages; n++) { if (n !== 1 && n !== pg.pages && Math.abs(n - pg.page) > 2) continue; %>
+      <% if (n - prev > 1) { %><span class="gap">&hellip;</span><% } prev = n; %>
+      <% if (n === pg.page) { %><span class="cur"><%= n %></span><% } else { %><a href="<%= pg.url(n) %>"><%= n %></a><% } %>
+    <% } %>
+    <% if (pg.page < pg.pages) { %><a href="<%= pg.url(pg.page + 1) %>" rel="next">Next &rsaquo;</a><% } %>
+    <span class="of"><%= pg.total %> total</span>
+  </div>
+<% } %>

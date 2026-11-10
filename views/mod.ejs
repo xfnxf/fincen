@@ -1,0 +1,109 @@
+<%- include('partials/header', { crumbs: [['Staff queue']] }) %>
+<% const openTickets = counts.reports + counts.brokers; %>
+<div class="page-head">
+  <div><h1>Staff queue</h1><p><%= openTickets %> open ticket<%= openTickets === 1 ? '' : 's' %></p></div>
+  <div class="actions">
+    <a class="btn" href="/f/middleman">Middleman requests</a>
+    <% if (checkoutEnabled) { %><a class="btn" href="/orders?review=1">Review test orders</a><% } %>
+  </div>
+</div>
+<nav class="tabs" aria-label="Staff queue sections">
+  <% for (const [key, label] of [['reports', 'Reports'], ['brokers', 'Broker requests'], ['members', 'Members']]) { %>
+    <a href="<%= queueUrl(key, key === 'members' ? 'open' : show) %>"<% if (section === key) { %> class="on" aria-current="page"<% } %>>
+      <%= label %><% if (counts[key]) { %> (<%= counts[key] %> open)<% } %>
+    </a>
+  <% } %>
+</nav>
+<% if (section !== 'members') { %>
+  <nav class="tabs" aria-label="Ticket status">
+    <% for (const [key, label] of [['open', 'Open'], ['closed', 'Completed'], ['all', 'All']]) { %>
+      <a href="<%= queueUrl(section, key) %>"<% if (show === key) { %> class="on" aria-current="page"<% } %>><%= label %></a>
+    <% } %>
+  </nav>
+<% } %>
+<% if (section === 'reports') { %>
+<div class="box staff-tickets">
+  <div class="box-head"><h2>Reports</h2><span class="dim small"><%= pg.total %> total</span></div>
+  <table>
+    <thead><tr><th>Reported</th><th>Reason</th><th>By</th><th class="right">Action</th></tr></thead>
+    <tbody>
+      <% if (!reports.length) { %><tr><td class="empty" colspan="4">No <%= show === 'open' ? 'open ' : show === 'closed' ? 'completed ' : '' %>reports.</td></tr><% } %>
+      <% for (const r of reports) { %>
+        <tr class="<%= r.status !== 'open' ? 'muted' : '' %>">
+          <td>
+            <span class="dim small"><%= r.kind %></span><br>
+            <% if (r.link) { %><a href="<%= r.link %>"><%= r.label %></a><% } else { %><span class="dim">removed</span><% } %>
+          </td>
+          <td><%= r.reason %></td>
+          <td class="num"><a href="/u/<%= r.reporter %>"><%= r.reporter %></a><br><span class="small"><%- time(r.created_at) %></span></td>
+          <td class="right">
+            <% if (r.status === 'open') { %>
+              <form class="inline" method="post" action="/mod/reports/<%= r.id %>">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <input type="hidden" name="show" value="<%= show %>">
+                <input type="hidden" name="page" value="<%= pg.page %>">
+                <button type="submit" class="sm">Resolve</button>
+              </form>
+            <% } else { %><span class="dim small">resolved<%= r.handler ? ' by ' + r.handler : '' %></span><% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<% } else if (section === 'brokers') { %>
+<div class="box staff-tickets">
+  <div class="box-head"><h2>Broker requests</h2><span class="dim small"><%= pg.total %> total</span></div>
+  <table>
+    <thead><tr><th>Name</th><th>Budget and note</th><th>From</th><th class="right">Action</th></tr></thead>
+    <tbody>
+      <% if (!brokers.length) { %><tr><td class="empty" colspan="4">No <%= show === 'open' ? 'open ' : show === 'closed' ? 'completed ' : '' %>broker requests.</td></tr><% } %>
+      <% for (const b of brokers) { %>
+        <tr class="<%= b.status !== 'open' ? 'muted' : '' %>">
+          <td><a href="https://fragment.com/username/<%= b.handle %>" target="_blank" rel="nofollow noopener noreferrer">@<%= b.handle %></a><br><span class="dim small"><%= b.price_ton != null ? b.price_ton.toLocaleString('en-US') + ' TON on Fragment' : '' %></span></td>
+          <td><%= b.budget || 'No budget given' %><% if (b.note) { %><br><span class="dim small"><%= b.note %></span><% } %></td>
+          <td class="num"><a href="/u/<%= b.buyer %>"><%= b.buyer %></a><br><span class="small"><%- time(b.created_at) %></span></td>
+          <td class="right">
+            <% if (b.status === 'open') { %>
+              <div class="actions">
+                <a class="btn sm" href="/broker/requests/<%= b.id %>?from=queue&amp;show=<%= show %>&amp;page=<%= pg.page %>">Reply to ticket</a>
+                <form class="inline" method="post" action="/mod/broker/<%= b.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <input type="hidden" name="show" value="<%= show %>">
+                  <input type="hidden" name="page" value="<%= pg.page %>">
+                  <button type="submit" class="sm">Mark done</button>
+                </form>
+              </div>
+            <% } else { %>
+              <a class="btn sm" href="/broker/requests/<%= b.id %>?from=queue&amp;show=<%= show %>&amp;page=<%= pg.page %>">View ticket</a>
+              <div class="dim small">Done<%= b.handler ? ' by ' + b.handler : '' %></div>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<% } else { %>
+<div class="cols-even">
+  <div class="box">
+    <div class="box-head"><h2>Newest members</h2><a class="more" href="/members?sort=new">All &rsaquo;</a></div>
+    <ul class="side-list">
+      <% for (const u of newest) { %>
+        <li><span class="l"><a href="/u/<%= u.username %>"><%= u.username %></a> <span class="dim small"><%= u.post_count %> posts</span></span><span class="dim small"><%- time(u.created_at) %></span></li>
+      <% } %>
+    </ul>
+  </div>
+  <div class="box">
+    <div class="box-head"><h2>Banned members</h2></div>
+    <ul class="side-list">
+      <% if (!banned.length) { %><li class="dim">Nobody is banned.</li><% } %>
+      <% for (const u of banned) { %>
+        <li><span class="l"><a href="/u/<%= u.username %>"><%= u.username %></a></span><span class="dim small"><%= u.ban_reason || 'no reason' %></span></li>
+      <% } %>
+    </ul>
+  </div>
+</div>
+<% } %>
+<% if (section !== 'members') { %><%- include('partials/pager', { pg }) %><% } %>
+<%- include('partials/footer') %>

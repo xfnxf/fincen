@@ -1,0 +1,82 @@
+<%- include('partials/header', { crumbs: [[forum.name, '/f/' + forum.slug], [edit ? 'Edit' : forum.is_market ? 'New listing' : 'New thread']] }) %>
+<div class="cols">
+  <div>
+    <h1><%= edit ? 'Edit ' + (forum.is_market ? 'listing' : 'thread') : forum.is_market ? 'New ' + forum.name + ' listing' : 'New thread in ' + forum.name %></h1>
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <form class="box" method="post" action="<%= edit ? '/t/' + edit + '/edit' : '/f/' + forum.slug + '/new' %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="box-body">
+        <% if (forum.is_market) { %>
+          <div class="preview-line" data-preview hidden>
+            <span class="dim small">Preview:</span>
+            <span class="tag" data-preview-type></span><span class="handle" data-preview-handle></span>
+            <span class="dim">&middot;</span> <span data-preview-title></span>
+            <span class="price" data-preview-price></span>
+          </div>
+          <div class="row field">
+            <div class="field fit">
+              <label for="lt">I am</label>
+              <select id="lt" name="listing_type" required>
+                <option value="">Choose...</option>
+                <% for (const k in LISTING_TYPES) { %><option value="<%= k %>" data-short="<%= LISTING_SHORT[k] %>" <%= v.listing_type === k ? 'selected' : '' %>><%= LISTING_TYPES[k] %> (<%= LISTING_SHORT[k] %>)</option><% } %>
+              </select>
+            </div>
+            <div class="field">
+              <label for="lh">Username</label>
+              <input id="lh" name="handle" value="<%= v.handle || '' %>" maxlength="64" placeholder="without the @" required autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="lp">Price in USD</label>
+              <input id="lp" name="price" value="<%= v.price || '' %>" maxlength="16" placeholder="blank = taking offers" inputmode="decimal" autocomplete="off">
+            </div>
+          </div>
+        <% } %>
+        <div class="field">
+          <label for="tt">Title</label>
+          <input id="tt" name="title" value="<%= v.title || '' %>" maxlength="120" required data-count
+            placeholder="<%= forum.is_market ? 'e.g. Clean 4 letter, original email included' : 'What is this about?' %>">
+        </div>
+        <div class="field">
+          <label for="tb"><%= forum.is_market ? 'Description' : 'Post' %></label>
+          <textarea id="tb" name="body" rows="10" maxlength="10000" required data-count <% if (!edit) { %>data-draft="new-<%= forum.slug %>"<% } %>><%= v.body || '' %></textarea>
+          
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary"><%= edit ? 'Save changes' : forum.is_market ? 'Post listing' : 'Post thread' %></button>
+          <a href="<%= edit ? '/t/' + edit : '/f/' + forum.slug %>">Cancel</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  <aside>
+    <% if (forum.is_market) { %>
+      <div class="box">
+        <div class="box-head"><h2>Good listings say</h2></div>
+        <div class="box-body">
+          <ul>
+            <li>How you got the name and how long you have owned it</li>
+            <li>What the buyer receives (original email, full access)</li>
+            <li>Payment methods you accept</li>
+            <li>Whether you will use a middleman</li>
+          </ul>
+          <p class="dim small">Never post passwords, emails or recovery codes in a listing.</p>
+        </div>
+      </div>
+      <div class="box">
+        <div class="box-head"><h2>Not allowed</h2></div>
+        <div class="box-body">
+          <p>Stolen, hacked, phished or SIM-swapped accounts, and names you do not control. These get you banned. <a href="/rules">Full rules</a></p>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="box">
+        <div class="box-head"><h2>Before you post</h2></div>
+        <div class="box-body">
+          <p>Selling or buying a name? Use the right <a href="/sell">marketplace forum</a> instead so it shows up in the market search.</p>
+          <% if (forum.slug === 'scam-reports') { %><p>Include the other member's name, what was agreed, and screenshots or links as proof.</p><% } %>
+        </div>
+      </div>
+    <% } %>
+  </aside>
+</div>
+<%- include('partials/footer') %>

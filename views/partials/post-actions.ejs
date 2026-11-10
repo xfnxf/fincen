@@ -1,0 +1,29 @@
+<div class="post-foot">
+  <% if (me) { %>
+    <% if (canReply) { %><button type="button" class="link" data-quote="body-<%= p.anchor %>" data-author="<%= p.username %>">Quote</button><% } %>
+    <% if (me.username !== p.username) { %><a href="/messages/<%= p.username %>">Message</a><% } %>
+    <% if (editUrl) { %><a href="<%= editUrl %>">Edit</a><% } %>
+    <% if (deleteAction) { %>
+      <form class="inline" method="post" action="<%= deleteAction %>" data-confirm="Delete this for good?">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" class="link danger">Delete</button>
+      </form>
+    <% } %>
+    <% if (me.username !== p.username) { %>
+      <details class="pop">
+        <summary>Report</summary>
+        <form class="pop-body" method="post" action="/report">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="hidden" name="kind" value="<%= kind %>">
+          <input type="hidden" name="target_id" value="<%= targetId %>">
+          <input type="hidden" name="next" value="<%= path %>">
+          <label>What is wrong?</label>
+          <textarea name="reason" maxlength="500" required></textarea>
+          <div class="hint">Staff see this, the poster does not.</div>
+          <p></p><button type="submit" class="primary">Send report</button>
+        </form>
+      </details>
+    <% } %>
+  <% } else { %>
+    <a href="/login?next=<%= encodeURIComponent(path) %>">Log in to reply</a>
+  <% } %>
+</div>

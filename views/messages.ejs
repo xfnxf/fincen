@@ -1,0 +1,32 @@
+<%- include('partials/header', { crumbs: [['Inbox']] }) %>
+<div class="page-head">
+  <div><h1>Inbox</h1></div>
+  <div class="actions">
+    <a class="btn" href="/broker/requests">My broker requests</a>
+    <form class="actions" method="get" action="/messages/to">
+      <input name="u" maxlength="32" placeholder="Member name" required>
+      <button type="submit" class="primary">New message</button>
+    </form>
+  </div>
+</div>
+<div class="box">
+  <table>
+    <thead><tr><th>With</th><th>Last message</th><th class="right">When</th></tr></thead>
+    <tbody>
+      <% if (!convos.length) { %><tr><td class="empty" colspan="3">No messages yet. Use "Message seller" on a listing to start one.</td></tr><% } %>
+      <% for (const c of convos) { %>
+        <tr>
+          <td class="nowrap">
+            <% if (c.unread) { %><span class="new-dot"></span><% } %>
+            <a class="b" href="/messages/<%= c.username %>"><%= c.username %></a>
+            <% if (c.unread) { %><span class="count"><%= c.unread %></span><% } %>
+            <% if (online(c.last_seen)) { %><div class="t-meta"><span class="on-dot"></span>online</div><% } %>
+          </td>
+          <td class="<%= c.unread ? 'b' : 'dim' %>"><a class="<%= c.unread ? '' : 'dim' %>" href="/messages/<%= c.username %>"><%= c.from_id === me.id ? 'You: ' : '' %><%= c.body.length > 110 ? c.body.slice(0, 110) + '...' : c.body %></a></td>
+          <td class="right num"><%- time(c.created_at) %></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/footer') %>

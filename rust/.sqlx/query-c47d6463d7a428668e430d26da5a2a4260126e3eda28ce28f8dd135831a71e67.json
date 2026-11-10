@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH filtered AS (\n    SELECT t.id, t.handle, t.title, f.slug AS forum_slug, f.name AS forum_name,\n           t.listing_type, t.status, u.username AS author, u.role, t.reply_count,\n           t.price_cents, t.last_post_at\n    FROM threads t\n    JOIN forums f ON f.id = t.forum_id\n    JOIN users u ON u.id = t.user_id\n    WHERE t.deleted = 0 AND f.is_market = 1\n      AND ($1 = '' OR strpos(lower(t.handle), lower($1)) > 0 OR strpos(lower(t.title), lower($1)) > 0)\n      AND ($2 = '' OR f.slug = $2)\n      AND ($3 = '' OR t.listing_type = $3)\n      AND (NOT $4::boolean OR (u.role <> 'member' AND t.listing_type = 'sell'))\n      AND ($5 = 'all' OR t.status = $5)\n      AND ($6::bigint IS NULL OR t.price_cents <= $6)\n), count_rows AS (\n    SELECT count(*) AS total FROM filtered\n), meta AS (\n    SELECT total, greatest(1, (total + 19) / 20) AS pages,\n           least($8::bigint, greatest(1, (total + 19) / 20)) AS page\n    FROM count_rows\n)\nSELECT meta.total AS \"total!\", meta.pages AS \"pages!\", meta.page AS \"page!\",\n       p.id AS \"id?\", p.handle AS \"handle?\", p.title AS \"title?\",\n       p.forum_slug AS \"forum_slug?\", p.forum_name AS \"forum_name?\",\n       p.listing_type AS \"listing_type?\", p.status AS \"status?\",\n       p.author AS \"author?\", p.role AS \"role?\", p.reply_count AS \"reply_count?\",\n       p.price_cents AS \"price_cents?\", p.last_post_at AS \"last_post_at?\"\nFROM meta LEFT JOIN LATERAL (\n    SELECT * FROM filtered\n    ORDER BY CASE WHEN $7 = 'low' THEN price_cents END ASC NULLS LAST,\n             CASE WHEN $7 = 'high' THEN price_cents END DESC NULLS LAST,\n             last_post_at DESC, id DESC\n    LIMIT 20 OFFSET (meta.page - 1) * 20\n) p ON true\nORDER BY CASE WHEN $7 = 'low' THEN p.price_cents END ASC NULLS LAST,\n         CASE WHEN $7 = 'high' THEN p.price_cents END DESC NULLS LAST,\n         p.last_post_at DESC, p.id DESC\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "pages!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "page!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "handle?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "title?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "forum_slug?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "forum_name?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "listing_type?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "status?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "author?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "role?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "reply_count?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "price_cents?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "last_post_at?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c47d6463d7a428668e430d26da5a2a4260126e3eda28ce28f8dd135831a71e67"
+}

@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n              (SELECT count(*) FROM threads t JOIN forums f ON f.id = t.forum_id\n               WHERE t.deleted = 0 AND f.is_market = 1 AND t.status = 'open') AS \"listings!\",\n              (SELECT count(*) FROM threads WHERE deleted = 0) AS \"threads!\",\n              (SELECT count(*) FROM posts WHERE deleted = 0) AS \"posts!\",\n              (SELECT count(*) FROM users) AS \"users!\",\n              (SELECT username FROM users ORDER BY id DESC LIMIT 1) AS \"newest?\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "listings!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "threads!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "posts!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "users!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "newest?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "809b85a343665f63e66e509e09e19f1068f88fa01b4360ac8b27f6167f59bae0"
+}

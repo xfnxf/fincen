@@ -1,0 +1,35 @@
+<%- include('partials/header', { crumbs: [['Alerts']] }) %>
+<div class="page-head"><div><h1>Alerts</h1></div></div>
+<div class="box">
+  <table>
+    <tbody>
+      <% if (!items.length) { %><tr><td class="empty">No alerts yet.</td></tr><% } %>
+      <% for (const n of items) { const name = n.handle ? '@' + n.handle : n.title; %>
+        <tr>
+          <td>
+            <% if (!n.read) { %><span class="new-dot" title="New"></span><% } %>
+            <% if (n.kind === 'sandbox_order') { %>
+              <%= n.label %> for <a href="/orders/<%= n.order_id %><%= ['disputed', 'dispute_reply'].includes(n.status) ? '#dispute' : '' %>">@<%= n.handle %></a>.
+            <% } else { %>
+            <% if (n.actor) { %><a href="/u/<%= n.actor %>"><%= n.actor %></a><% } else { %>Someone<% } %>
+            <% if (n.kind === 'reply') { %>
+              replied to <a href="/t/<%= n.thread_id %>#p<%= n.post_id %>"><%= name || 'your thread' %></a>
+            <% } else if (n.kind === 'vouch') { %>
+              left you feedback. <a href="/u/<%= me.username %>#feedback">View it</a>
+            <% } else if (n.kind === 'broker_reply') { %>
+              replied to <a href="/broker/requests/<%= n.broker_request_id %>">the broker request for @<%= n.broker_handle %></a>.
+            <% } else if (n.kind === 'price_drop') { %>
+              lowered the price of <a href="/t/<%= n.thread_id %>"><%= name || 'a listing you saved' %></a>.
+            <% } else { %>
+              changed a listing you saved: <a href="/t/<%= n.thread_id %>"><%= name || 'listing' %></a>
+              <% if (n.status) { %>is now <b class="st-<%= n.status %>"><%= STATUSES[n.status].toLowerCase() %></b><% } %>
+            <% } %>
+            <% } %>
+          </td>
+          <td class="right num"><%- time(n.created_at) %></td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/footer') %>

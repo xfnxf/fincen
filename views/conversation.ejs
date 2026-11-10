@@ -1,0 +1,58 @@
+<%- include('partials/header', { crumbs: [['Inbox', '/messages'], [other.username]] }) %>
+<div class="cols">
+  <div>
+    <div class="box">
+      <div class="box-head">
+        <h2>Chat with <a href="/u/<%= other.username %>"><%= other.username %></a></h2>
+        <span class="dim small"><% if (online(other.last_seen)) { %><span class="on-dot"></span>online<% } else { %>seen <%- time(other.last_seen) %><% } %></span>
+      </div>
+      <div class="chat" data-scroll-end>
+        <% if (!msgs.length) { %><div class="dim center">No messages yet. Say what you are interested in and your offer.</div><% } %>
+        <% for (const m of msgs) { %>
+          <div class="msg <%= m.from_id === me.id ? 'mine' : '' %>"><%- fmt(m.body) %><span class="when"><%= m.from_id === me.id ? 'You' : other.username %> &middot; <%- time(m.created_at) %></span></div>
+        <% } %>
+        <div id="end"></div>
+      </div>
+    </div>
+    <% if (other.banned) { %>
+      <div class="notice bad-note">This member is banned. Do not send them money.</div>
+    <% } %>
+    <form class="box" method="post" action="/messages/<%= other.username %>">
+      <div class="box-body">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <div class="field">
+          <textarea name="body" maxlength="4000" required data-count data-draft="pm-<%= other.username %>" placeholder="Write a message..."><%= prefill %></textarea>
+          
+        </div>
+        <button type="submit" class="primary">Send</button>
+      </div>
+    </form>
+  </div>
+  <aside>
+    <div class="box">
+      <div class="box-head"><h2><%= other.username %></h2></div>
+      <div class="box-body">
+        <table class="facts">
+          <tr><td>Rank</td><td><%= rank(stats.rep, stats.created_at) %></td></tr>
+          <tr><td>Reputation</td><td class="b <%= stats.rep > 0 ? 'good' : stats.rep < 0 ? 'bad' : '' %>"><a class="rep-link" href="/u/<%= other.username %>#feedback" title="Read feedback"><%= signed(stats.rep) %></a> <span class="dim small">(<%= stats.fb_count %> feedback)</span></td></tr>
+          <tr><td>Joined</td><td><%= date(stats.created_at) %></td></tr>
+          <% if (other.role !== 'member') { %><tr><td>Role</td><td><span class="role <%= other.role %>"><%= other.role === 'admin' ? 'Administrator' : 'Moderator' %></span></td></tr><% } %>
+        </table>
+        <a href="/u/<%= other.username %>#feedback">Read their feedback</a>
+      </div>
+    </div>
+    <div class="box">
+      <div class="box-head"><h2>Stay safe</h2></div>
+      <div class="box-body small">
+        <ul>
+          <li>Keep the deal in these messages so staff can review it.</li>
+          <li>Use a <a href="/staff">listed staff middleman</a> with new members.</li>
+          <li>Never share your password or login codes.</li>
+          <li>Screenshot payment and transfer steps.</li>
+        </ul>
+        <% if (other.role === 'member') { %><p class="dim">This member is not staff. Anyone claiming otherwise is lying.</p><% } %>
+      </div>
+    </div>
+  </aside>
+</div>
+<%- include('partials/footer') %>

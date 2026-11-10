@@ -1,0 +1,25 @@
+  </main>
+</div>
+<footer>
+  <div class="wrap foot-in">
+    <div>
+      <div class="foot-links">
+        <a href="/rules">Rules</a><a href="/help">Help &amp; safety</a><a href="/staff">Staff</a><a href="/f/scam-reports">Scam reports</a><a href="/f/middleman">Middleman requests</a>
+      </div>
+      <div><%= site %> never holds money or accounts. Stolen, hacked or phished accounts are banned here.</div>
+    </div>
+    <form action="/go" method="get">
+      <label for="jump" class="dim small">Jump to</label>
+      <select name="f" id="jump" data-autosubmit>
+        <% if (!navSlug) { %><option value="">Choose a forum</option><% } %>
+        <% let sec = null; for (const f of allForums) { %>
+          <% if (f.section !== sec) { %><% if (sec) { %></optgroup><% } %><optgroup label="<%= f.section %>"><% sec = f.section; } %>
+          <option value="<%= f.slug %>" <%= navSlug === f.slug ? 'selected' : '' %>><%= f.name %></option>
+        <% } %><% if (sec) { %></optgroup><% } %>
+      </select>
+      <button type="submit" class="sm">Go</button>
+    </form>
+  </div>
+</footer>
+</body>
+</html>

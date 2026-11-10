@@ -1,0 +1,7 @@
+<span class="av profile-avatar" aria-hidden="true">
+  <% if (avatarUser.has_avatar) { %>
+    <img src="/u/<%= avatarUser.username %>/avatar" alt="" width="256" height="256">
+  <% } else { %>
+    <%= avatarUser.username[0].toUpperCase() %>
+  <% } %>
+</span>

@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+<div class="narrow">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form class="box" method="post" action="/reset/<%= token %>">
+    <div class="box-head"><h2>New password for <%= username %></h2></div>
+    <div class="box-body">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="field">
+        <label for="rp">New password</label>
+        <input id="rp" type="password" name="password" required minlength="8" autofocus autocomplete="new-password">
+        <div class="hint">At least 8 characters. This logs the account out everywhere.</div>
+      </div>
+      <div class="field">
+        <label for="rp2">Repeat password</label>
+        <input id="rp2" type="password" name="password2" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="primary">Change password</button>
+    </div>
+  </form>
+</div>
+<%- include('partials/footer') %>

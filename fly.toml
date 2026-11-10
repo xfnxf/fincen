@@ -1,0 +1,37 @@
+# Fly.io config for Fincen. See DEPLOY.md.
+# App names are unique across all of Fly: change this if "signet-market" is taken.
+app = "signet-market"
+primary_region = "iad"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  DATA_DIR = "/data"
+  TRUST_PROXY = "1"
+  PORT = "3000"
+
+# The SQLite database lives on this volume. Create it once with:
+#   fly volumes create signet_data --size 1 --region iad
+[mounts]
+  source = "signet_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # Sleeps when nobody is visiting and wakes on the next request (first load takes a few seconds).
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

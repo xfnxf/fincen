@@ -1,0 +1,1 @@
+ALTER TABLE vouches ADD COLUMN deal_thread_id BIGINT REFERENCES threads(id) ON DELETE SET NULL;
