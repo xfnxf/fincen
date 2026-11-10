@@ -1,4 +1,4 @@
-# Signet. Node's built-in SQLite needs Node 22.13 or newer.
+# Fincen. Node's built-in SQLite needs Node 22.13 or newer.
 FROM node:24-slim
 ENV NODE_ENV=production DATA_DIR=/data PORT=3000 TRUST_PROXY=1
 WORKDIR /app
