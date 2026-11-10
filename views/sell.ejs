@@ -1,6 +1,7 @@
 <%- include('partials/header', { crumbs: [['Post a listing']] }) %>
 <div class="mid">
   <h1>Post a listing</h1>
+  <% if (block) { %><div class="notice"><b><%= block.title %>.</b> <%= block.message %> <a href="/upgrades">See memberships</a></div><% } %>
   <p class="dim">Which platform is the username on? Selling and buying both go in the same forum.</p>
   <div class="choose">
     <% for (const p of platforms) { %>

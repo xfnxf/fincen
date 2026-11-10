@@ -465,6 +465,8 @@ input[type="text"], input[type="password"], input[type="search"], input[type="nu
 .tag.buy { color: var(--link); }
 .chip { border-radius: 0; background: var(--raise); font-size: 11px; }
 .chip.stock { background: var(--blue); color: #fff; }
+.chip.gold { background: none; border: 1px solid var(--warn); color: var(--warn); }
+.threads tr.featured > td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
 .av { border-radius: 0; background: var(--raise); color: var(--text); font-family: var(--display); font-weight: 300; font-size: 20px; }
 .av-lg { border-radius: 0; font-size: 32px; }
 .menu summary.me .av { width: 34px; height: 34px; }

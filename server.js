@@ -151,7 +151,8 @@ const USER_STATS = `
     WHERE p2.user_id = u.id AND p2.deleted = 0 AND pt.deleted = 0)
     + (SELECT COUNT(*) FROM threads t2 WHERE t2.user_id = u.id AND t2.deleted = 0) AS post_count`;
 const THREAD_SELECT = `
-  SELECT t.*, u.username AS author, u.role AS author_role, EXISTS (SELECT 1 FROM user_avatars WHERE user_id = u.id) AS author_avatar, lu.username AS last_user,
+  SELECT t.*, u.username AS author, u.role AS author_role, EXISTS (SELECT 1 FROM user_avatars WHERE user_id = u.id) AS author_avatar,
+         (SELECT plan FROM sandbox_memberships WHERE user_id = u.id) AS author_plan, lu.username AS last_user,
          f.slug AS forum_slug, f.name AS forum_name, f.is_market
   FROM threads t
   JOIN users u ON u.id = t.user_id
@@ -384,7 +385,7 @@ app.get('/', (req, res) => {
 app.get('/rules', (req, res) => res.render('rules', { title: 'Rules' }));
 app.get('/help', (req, res) => res.render('help', { title: 'Help' }));
 app.get('/go', (req, res) => res.redirect(q.forumBySlug.get(String(req.query.f || '')) ? '/f/' + req.query.f : '/'));
-app.get('/sell', requireLogin, (req, res) => res.render('sell', { title: 'Post a listing' }));
+app.get('/sell', requireLogin, (req, res) => res.render('sell', { title: 'Post a listing', block: listingBlock(req.user) }));
 
 app.get('/staff', (req, res) => {
   const staff = db.prepare(`SELECT u.username, u.role, u.last_seen, u.created_at, u.contact, ${USER_STATS}
@@ -523,6 +524,26 @@ function canPostIn(forum, user) {
   return !forum.staff_only || isMod(user);
 }
 
+// Membership rules for listings. Only applies when memberships are switched on, and never to staff.
+const openListings = db.prepare(`SELECT COUNT(*) AS c FROM threads t JOIN forums f ON f.id = t.forum_id
+  WHERE t.user_id = ? AND t.deleted = 0 AND f.is_market = 1 AND t.status = 'open' AND t.id != ?`);
+// Returns null when the member may have one more open listing, or { title, message } explaining why not.
+function listingBlock(user, exceptThreadId = 0) {
+  if (!membershipsOn || isMod(user)) return null;
+  const plan = memberships.planFor(user.id);
+  const entry = memberships.plans.plus;
+  if (plan.listings === 0) {
+    return { title: entry.name + ' membership needed',
+      message: `Posting listings needs an ${entry.name} membership or higher. Reading, replying, messaging and price checks stay free.` };
+  }
+  if (plan.listings !== null && openListings.get(user.id, exceptThreadId).c >= plan.listings) {
+    return { title: 'Listing limit reached',
+      message: `${plan.name} allows ${plan.listings} open listings at once. Close or sell one, or move up a tier for more.` };
+  }
+  return null;
+}
+const bumpMs = (user) => (membershipsOn && !isMod(user) ? memberships.planFor(user.id).bumpHours : 24) * 3600 * 1000;
+
 // Reads and validates the new/edit thread form.
 function readThreadForm(req, forum) {
   const v = {
@@ -553,6 +574,8 @@ app.get('/f/:slug/new', requireLogin, (req, res) => {
   const forum = q.forumBySlug.get(req.params.slug);
   if (!forum) return fail(res, 404, 'Forum not found.');
   if (!canPostIn(forum, req.user)) return fail(res, 403, 'Only staff can post in this forum.');
+  const block = forum.is_market ? listingBlock(req.user) : null;
+  if (block) return res.status(403).render('listing_gate', { title: block.title, block, navSlug: forum.slug });
   res.render('new_thread', { title: 'New thread', forum, error: null, v: {}, edit: null, navSlug: forum.slug });
 });
 
@@ -560,6 +583,8 @@ app.post('/f/:slug/new', requireLogin, limit('thread', 6, 600e3), (req, res) => 
   const forum = q.forumBySlug.get(req.params.slug);
   if (!forum) return fail(res, 404, 'Forum not found.');
   if (!canPostIn(forum, req.user)) return fail(res, 403, 'Only staff can post in this forum.');
+  const block = forum.is_market ? listingBlock(req.user) : null;
+  if (block) return res.status(403).render('listing_gate', { title: block.title, block, navSlug: forum.slug });
   const { v, error, priceCents } = readThreadForm(req, forum);
   if (error) return res.status(400).render('new_thread', { title: 'New thread', forum, error, v, edit: null, navSlug: forum.slug });
 
@@ -645,8 +670,9 @@ app.get('/t/:id', (req, res) => {
         WHERE t.user_id = ? AND t.deleted = 0 AND f.is_market = 1 AND t.status = 'open'`).get(op.id).c,
       saves: db.prepare('SELECT COUNT(*) AS c FROM saves WHERE thread_id = ?').get(thread.id).c,
       saved: req.user ? !!db.prepare('SELECT 1 AS x FROM saves WHERE user_id = ? AND thread_id = ?').get(req.user.id, thread.id) : false,
-      canBump: thread.status === 'open' && (!thread.bumped_at || now - thread.bumped_at > DAY),
-      nextBump: thread.bumped_at ? thread.bumped_at + DAY : 0,
+      canBump: thread.status === 'open' && (!thread.bumped_at || now - thread.bumped_at > bumpMs(op)),
+      nextBump: thread.bumped_at ? thread.bumped_at + bumpMs(op) : 0,
+      bumpHours: bumpMs(op) / 3600000,
       more: db.prepare(`${THREAD_SELECT} WHERE t.user_id = ? AND t.id != ? AND t.deleted = 0 AND f.is_market = 1 AND t.status = 'open'
         ORDER BY t.last_post_at DESC LIMIT 5`).all(op.id, thread.id),
       similar: db.prepare(`${THREAD_SELECT} WHERE t.forum_id = ? AND t.id != ? AND t.user_id != ? AND t.deleted = 0 AND t.status = 'open'
@@ -734,6 +760,10 @@ app.post('/t/:id/status', requireLogin, (req, res) => {
   if (!thread.is_market || !Object.hasOwn(STATUSES, status)) return fail(res, 400, 'Invalid status.');
   if (status !== thread.status) {
     if (sandbox.lockListing(thread.id)) return fail(res, 409, 'This listing has an active test order.');
+    if (status === 'open' && thread.user_id === req.user.id) {
+      const block = listingBlock(req.user, thread.id);
+      if (block) return fail(res, 403, block.message);
+    }
     setListingStatus(thread, status, req.user.id);
     flash(res, `Listing marked ${STATUSES[status].toLowerCase()}.`);
   }
@@ -747,7 +777,8 @@ app.post('/t/:id/bump', requireLogin, (req, res) => {
   if (thread.user_id !== req.user.id) return fail(res, 403, 'Not your listing.');
   if (!thread.is_market || thread.status !== 'open') return fail(res, 400, 'Only open listings can be bumped.');
   const now = Date.now();
-  if (thread.bumped_at && now - thread.bumped_at < DAY) return fail(res, 429, 'You can bump a listing once every 24 hours.');
+  const wait = bumpMs(req.user);
+  if (thread.bumped_at && now - thread.bumped_at < wait) return fail(res, 429, `You can bump a listing once every ${wait / 3600000} hours.`);
   db.prepare('UPDATE threads SET bumped_at = ?, last_post_at = ? WHERE id = ?').run(now, now, thread.id);
   flash(res, 'Listing bumped to the top.');
   res.redirect(back(req, '/t/' + thread.id));
@@ -824,7 +855,8 @@ app.get('/my/listings', requireLogin, (req, res) => {
   const all = db.prepare(`${THREAD_SELECT} WHERE t.user_id = ? AND t.deleted = 0
     ORDER BY t.status = 'open' DESC, t.last_post_at DESC LIMIT 200`).all(req.user.id);
   const now = Date.now();
-  for (const t of all) t.canBump = t.status === 'open' && (!t.bumped_at || now - t.bumped_at > DAY);
+  const wait = bumpMs(req.user);
+  for (const t of all) t.canBump = t.status === 'open' && (!t.bumped_at || now - t.bumped_at > wait);
   const pro = membershipsOn && memberships.hasTier(req.user.id, 'pro');
   const listings = all.filter((t) => t.listing_type);
   const insights = pro ? db.prepare(`SELECT COALESCE(SUM(t.views), 0) AS views,
@@ -1378,9 +1410,11 @@ app.post('/my/listings/bulk', requireMemberships, requireLogin, (req, res) => {
   if (!['open', 'closed'].includes(status)) return fail(res, 400, 'Choose open or closed.');
   const ids = [...new Set([req.body.listing].flat().map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
   if (!ids.length || ids.length > 200) return fail(res, 400, 'Select up to 200 listings.');
+  const cap = isMod(req.user) ? null : memberships.planFor(req.user.id).listings;
   const result = sandbox.transaction(() => {
     let updated = 0;
     let skipped = 0;
+    let open = openListings.get(req.user.id, 0).c;
     for (const id of ids) {
       const thread = q.thread.get(id);
       if (!thread || thread.user_id !== req.user.id || !thread.is_market || !thread.listing_type ||
@@ -1389,6 +1423,8 @@ app.post('/my/listings/bulk', requireMemberships, requireLogin, (req, res) => {
         continue;
       }
       if (thread.status !== status) {
+        if (status === 'open' && cap !== null && open >= cap) { skipped++; continue; }
+        open += status === 'open' ? 1 : -1;
         setListingStatus(thread, status, req.user.id);
         updated++;
       }

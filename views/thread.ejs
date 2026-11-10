@@ -94,7 +94,7 @@
         <% if (mine) { %>
           <% if (extra.canBump) { %>
             <form class="inline" method="post" action="/t/<%= thread.id %>/bump">
-              <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" title="Move to the top of the forum. Once every 24 hours.">Bump</button>
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" title="Move to the top of the forum. Once every <%= extra.bumpHours %> hours.">Bump</button>
             </form>
           <% } else if (thread.status === 'open') { %><span class="dim small">Next bump in <%= Math.max(1, Math.ceil((extra.nextBump - Date.now()) / 3600000)) %> hr</span><% } %>
         <% } %>

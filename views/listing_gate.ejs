@@ -1,0 +1,14 @@
+<%- include('partials/header', { crumbs: [['Post a listing', '/sell'], [block.title]] }) %>
+<div class="narrow">
+  <h1><%= block.title %></h1>
+  <div class="box">
+    <div class="box-body">
+      <p><%= block.message %></p>
+      <div class="actions">
+        <a class="btn primary" href="/upgrades">See memberships</a>
+        <a class="btn" href="/my/listings">My listings</a>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('partials/footer') %>

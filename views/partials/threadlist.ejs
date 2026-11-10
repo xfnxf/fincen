@@ -14,7 +14,8 @@
       <tr><td class="empty" colspan="4"><%= locals.emptyText || 'Nothing here yet.' %></td></tr>
     <% } %>
     <% for (const t of threads) { const done = t.listing_type && t.status !== 'open'; %>
-      <tr class="<%= t.pinned ? 'pinned' : '' %> <%= done ? 'muted' : '' %> <%= t.last_post_at > since ? 'unread' : '' %>">
+      <% const featured = membershipsEnabled && t.author_plan === 'elite' && t.listing_type === 'sell' && !done; %>
+      <tr class="<%= t.pinned ? 'pinned' : '' %> <%= done ? 'muted' : '' %> <%= t.last_post_at > since ? 'unread' : '' %> <%= featured ? 'featured' : '' %>">
         <td>
           <div class="t-row">
             <%- include('avatar', { name: t.author, has: t.author_avatar, href: '/u/' + t.author }) %>
@@ -23,6 +24,7 @@
                 <% if (t.listing_type) { %><span class="tag <%= t.listing_type %>" title="<%= LISTING_TYPES[t.listing_type] %>"><%= LISTING_SHORT[t.listing_type] %></span><% } %>
                 <a href="/t/<%= t.id %>"><%= t.listing_type ? '@' + t.handle : t.title %></a>
                 <% if (t.listing_type === 'sell' && t.author_role && t.author_role !== 'member') { %><span class="chip stock" title="Owned and sold by Fincen staff">Fincen stock</span><% } %>
+                <% if (featured) { %><span class="chip gold" title="Listed by an Imperium member">Imperium</span><% } %>
                 <% if (t.pinned) { %><span class="chip">Pinned</span><% } %>
                 <% if (t.locked) { %><span class="chip">Locked</span><% } %>
                 <% if (done) { %><span class="chip st-<%= t.status %>"><%= STATUSES[t.status] %></span><% } %>

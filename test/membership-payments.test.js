@@ -180,6 +180,54 @@ test('memberships are sold through NOWPayments and only activate on a verified f
       assert.equal((await request('/mod/memberships/' + id + '/activate', admin, {})).status, 302);
       assert.equal(planOf(other), 'plus');
     });
+
+    await t.test('tiers decide who can post listings, how many, and how often they bump', async () => {
+      const free = member('pay_free');
+      const top = member('pay_top');
+      db.prepare("INSERT INTO sandbox_memberships (user_id, plan) VALUES (?, 'elite')").run(top.id);
+      const fixture = (user, handle) => db.prepare(`INSERT INTO threads
+        (forum_id, user_id, title, body, created_at, last_post_at, listing_type, handle, price_cents)
+        SELECT id, ?, ?, 'Test fixture', ?, ?, 'sell', ?, 2000 FROM forums WHERE slug = 'discord'`)
+        .run(user.id, 'Fixture ' + handle, now, now, handle).lastInsertRowid;
+      const post = (user, slug, handle) => request('/f/' + slug + '/new', user, slug === 'general'
+        ? { title: 'Hello there', body: 'A normal discussion post.' }
+        : { listing_type: 'sell', handle, price: '20', title: 'Test listing', body: 'A listing used by the tests.' });
+
+      // Free: no listings, but the rest of the forum still works.
+      const refused = await post(free, 'discord', 'freename');
+      assert.equal(refused.status, 403);
+      assert.match(await refused.text(), /Argent membership needed/);
+      assert.equal((await request('/f/discord/new', free)).status, 403);
+      assert.equal((await post(free, 'general')).status, 302);
+      assert.match(await (await request('/sell', free)).text(), /Argent membership needed/);
+
+      // Argent (5 open listings): the fifth goes through, the sixth does not.
+      const held = [1, 2, 3, 4].map((n) => fixture(other, 'argent' + n));
+      assert.equal((await post(other, 'discord', 'argent5')).status, 302);
+      const sixth = await post(other, 'discord', 'argent6');
+      assert.equal(sixth.status, 403);
+      assert.match(await sixth.text(), /Listing limit reached/);
+      // Closing one frees a slot, and reopening past the limit is refused.
+      assert.equal((await request('/t/' + held[0] + '/status', other, { status: 'closed' })).status, 302);
+      fixture(other, 'argent7');
+      assert.equal((await request('/t/' + held[0] + '/status', other, { status: 'open' })).status, 403);
+
+      // Staff are not limited by tiers.
+      assert.equal((await post(admin, 'discord', 'staffname')).status, 302);
+
+      // Bump timers: Aurum every 12 hours, Argent every 24.
+      const thirteenHoursAgo = Date.now() - 13 * 3600 * 1000;
+      const aurumListing = fixture(buyer, 'aurumbump');
+      db.prepare('UPDATE threads SET bumped_at = ? WHERE id IN (?, ?)').run(thirteenHoursAgo, aurumListing, held[1]);
+      assert.equal((await request('/t/' + aurumListing + '/bump', buyer, {})).status, 302);
+      assert.equal((await request('/t/' + held[1] + '/bump', other, {})).status, 429);
+
+      // Imperium listings are highlighted; nobody else's are.
+      fixture(top, 'imperiumname');
+      const market = await (await request('/market', free)).text();
+      assert.equal((market.match(/chip gold/g) || []).length, 1);
+      assert.match(market, /class="[^"]*featured[^"]*">[\s\S]*?@imperiumname/);
+    });
   } finally {
     const exited = once(server, 'exit');
     server.kill();
