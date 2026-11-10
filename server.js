@@ -148,7 +148,7 @@ const USER_STATS = `
     WHERE p2.user_id = u.id AND p2.deleted = 0 AND pt.deleted = 0)
     + (SELECT COUNT(*) FROM threads t2 WHERE t2.user_id = u.id AND t2.deleted = 0) AS post_count`;
 const THREAD_SELECT = `
-  SELECT t.*, u.username AS author, u.role AS author_role, lu.username AS last_user,
+  SELECT t.*, u.username AS author, u.role AS author_role, EXISTS (SELECT 1 FROM user_avatars WHERE user_id = u.id) AS author_avatar, lu.username AS last_user,
          f.slug AS forum_slug, f.name AS forum_name, f.is_market
   FROM threads t
   JOIN users u ON u.id = t.user_id
@@ -561,7 +561,7 @@ app.get('/market', (req, res) => {
   const threads = db.prepare(`${THREAD_SELECT} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`)
     .all(...args, PER_PAGE, pg.offset);
   const filtered = !!(f.q || f.seller || f.platform || f.type || f.max || f.stock || f.status !== 'open' || f.sort !== 'new');
-  const canSaveSearch = !!(sandbox.enabled && req.user && memberships.current(req.user.id).plan !== 'free');
+  const canSaveSearch = !!(sandbox.enabled && req.user && memberships.hasTier(req.user.id, 'plus'));
   res.render('market', { title: 'Market', threads, pg, f, filtered, canSaveSearch });
 });
 
@@ -586,9 +586,9 @@ app.get('/t/:id', (req, res) => {
   if (!thread) return fail(res, 404, 'Thread not found.');
   db.prepare('UPDATE threads SET views = views + 1 WHERE id = ?').run(thread.id);
   const pg = paging(req, thread.reply_count);
-  const op = db.prepare(`SELECT u.id, u.username, u.role, u.banned, u.created_at, u.last_seen, ${USER_STATS} FROM users u WHERE u.id = ?`).get(thread.user_id);
+  const op = db.prepare(`SELECT u.id, u.username, u.role, u.banned, u.created_at, u.last_seen, EXISTS (SELECT 1 FROM user_avatars WHERE user_id = u.id) AS has_avatar, ${USER_STATS} FROM users u WHERE u.id = ?`).get(thread.user_id);
   const posts = db.prepare(`
-    SELECT p.*, u.username, u.role, u.created_at AS joined, u.last_seen, ${USER_STATS}
+    SELECT p.*, u.username, u.role, u.created_at AS joined, u.last_seen, EXISTS (SELECT 1 FROM user_avatars WHERE user_id = u.id) AS has_avatar, ${USER_STATS}
     FROM posts p JOIN users u ON u.id = p.user_id
     WHERE p.thread_id = ? AND p.deleted = 0 ORDER BY p.id LIMIT ? OFFSET ?`).all(thread.id, PER_PAGE, pg.offset);
 
@@ -665,7 +665,7 @@ app.post('/t/:id/edit', requireLogin, (req, res) => {
         v.listing_type === 'sell' && current.handle?.toLowerCase() === v.handle.toLowerCase() &&
         priceCents != null && current.price_cents != null && priceCents < current.price_cents) {
       const watchers = db.prepare(`SELECT s.user_id FROM saves s JOIN sandbox_memberships m ON m.user_id = s.user_id
-        WHERE s.thread_id = ? AND m.plan IN ('plus', 'pro') AND m.expires_at > ?`).all(thread.id, Date.now());
+        WHERE s.thread_id = ? AND m.plan <> 'free'`).all(thread.id);
       for (const watcher of watchers) notify(watcher.user_id, 'price_drop', req.user.id, thread.id);
     }
     return true;
@@ -781,7 +781,7 @@ app.get('/my/listings', requireLogin, (req, res) => {
     ORDER BY t.status = 'open' DESC, t.last_post_at DESC LIMIT 200`).all(req.user.id);
   const now = Date.now();
   for (const t of all) t.canBump = t.status === 'open' && (!t.bumped_at || now - t.bumped_at > DAY);
-  const pro = sandbox.enabled && memberships.current(req.user.id).plan === 'pro';
+  const pro = sandbox.enabled && memberships.hasTier(req.user.id, 'pro');
   const listings = all.filter((t) => t.listing_type);
   const insights = pro ? db.prepare(`SELECT COALESCE(SUM(t.views), 0) AS views,
     COALESCE(SUM(t.status = 'sold' AND t.listing_type = 'sell'), 0) AS sold,
@@ -1298,7 +1298,7 @@ app.post('/orders/:id/dispute/replies', requireSandbox, requireLogin, limit('ord
 });
 
 function requirePaidMembership(req, res, next) {
-  if (memberships.current(req.user.id).plan === 'free') return fail(res, 403, 'A Plus or Pro membership is required.');
+  if (!memberships.hasTier(req.user.id, 'plus')) return fail(res, 403, 'A Plus membership or higher is required.');
   next();
 }
 
@@ -1324,7 +1324,7 @@ app.post('/saved/searches/:id/delete', requireSandbox, requireLogin, (req, res) 
 });
 
 app.post('/my/listings/bulk', requireSandbox, requireLogin, (req, res) => {
-  if (memberships.current(req.user.id).plan !== 'pro') return fail(res, 403, 'A Pro membership is required.');
+  if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, 'A Pro membership or higher is required.');
   const status = req.body.status;
   if (!['open', 'closed'].includes(status)) return fail(res, 400, 'Choose open or closed.');
   const ids = [...new Set([req.body.listing].flat().map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
@@ -1360,7 +1360,7 @@ app.post('/upgrades', requireSandbox, requireLogin, (req, res) => {
   if (!Object.hasOwn(memberships.plans, plan)) return fail(res, 400, 'Choose a membership tier.');
   if (plan !== 'free') return res.redirect(303, '/upgrades/checkout/' + plan);
   memberships.choose(req.user.id, 'free');
-  flash(res, 'Switched to Free.');
+  flash(res, 'Test membership reset to Free.');
   res.redirect('/upgrades');
 });
 
@@ -1372,27 +1372,28 @@ function requirePaidPlan(req, res, next) {
 
 app.get('/upgrades/checkout/:plan', requireSandbox, requireLogin, requirePaidPlan, (req, res) => {
   const plan = memberships.plans[req.params.plan];
+  if (memberships.hasTier(req.user.id, req.params.plan)) return res.redirect('/upgrades');
   const membership = memberships.current(req.user.id);
-  if (membership.plan === req.params.plan) return res.redirect('/upgrades');
   res.render('upgrade_checkout', {
     title: plan.name + ' checkout', plan, planKey: req.params.plan, currentPlan: memberships.plans[membership.plan],
   });
 });
 
 app.post('/upgrades/checkout/:plan', requireSandbox, requireLogin, requirePaidPlan, (req, res) => {
-  memberships.choose(req.user.id, req.params.plan);
-  flash(res, memberships.plans[req.params.plan].name + ' activated in the sandbox.');
+  if (memberships.choose(req.user.id, req.params.plan)) {
+    flash(res, memberships.plans[req.params.plan].name + ' activated. No payment was collected.');
+  }
   res.redirect(303, '/upgrades');
 });
 
 app.post('/upgrades/headline', requireSandbox, requireLogin, (req, res) => {
-  if (!memberships.setHeadline(req.user.id, clean(req.body.headline, 72))) return fail(res, 403, 'A Plus or Pro membership is required.');
+  if (!memberships.setHeadline(req.user.id, clean(req.body.headline, 72))) return fail(res, 403, 'A Plus membership or higher is required.');
   flash(res, 'Profile headline saved.');
   res.redirect('/upgrades');
 });
 
 app.get('/my/listings/export', requireSandbox, requireLogin, (req, res) => {
-  if (memberships.current(req.user.id).plan !== 'pro') return fail(res, 403, 'A Pro membership is required.');
+  if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, 'A Pro membership or higher is required.');
   const rows = db.prepare(`SELECT handle, title, listing_type, status, price_cents, views FROM threads
     WHERE user_id = ? AND listing_type IS NOT NULL AND deleted = 0 ORDER BY id DESC`).all(req.user.id);
   const columns = ['handle', 'title', 'listing_type', 'status', 'price_cents', 'views'];

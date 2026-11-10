@@ -1,24 +1,24 @@
 <%- include('partials/header', { crumbs: [['Membership upgrades']] }) %>
 <div class="page-head">
-  <div><h1>Membership upgrades</h1><% if (membership) { %><p>Current tier &middot; <%= plans[membership.plan].name %><% if (membership.expires_at) { %> through <%= date(membership.expires_at) %><% } %></p><% } %></div>
+  <div><h1>Membership upgrades</h1><p>Pay once and keep your perks.</p></div>
 </div>
-<div class="notice">Sandbox memberships use sample monthly prices. Test upgrades last 30 days and do not charge or renew.</div>
-<div class="feat">
+<p class="small dim">Preview only &middot; Checkout won’t charge you.</p>
+<% const currentLevel = membership ? plans[membership.plan].level : 0; %>
+<div class="membership-grid">
   <% for (const [key, plan] of Object.entries(plans)) { %>
     <section class="box">
-      <div class="box-head"><h2><%= plan.name %></h2><span><%= plan.price ? money(plan.price) + ' / month' : 'Free' %></span></div>
+      <div class="box-head"><h2><%= plan.name %></h2><span><%= plan.price ? money(plan.price) + ' once' : '$0' %></span></div>
       <div class="box-body">
         <ul><% for (const perk of plan.perks) { %><li><%= perk %></li><% } %></ul>
-        <% if (key === membership?.plan) { %>
-          <span class="dim">Current tier</span>
-        <% } else if (key !== 'free') { %>
-          <a class="btn primary" href="/upgrades/checkout/<%= key %>">Choose <%= plan.name %></a>
-        <% } else if (membership) { %>
-          <form method="post" action="/upgrades">
-            <input type="hidden" name="_csrf" value="<%= csrf %>">
-            <button type="submit" name="plan" value="free">Switch to Free</button>
-          </form>
-        <% } %>
+        <div class="membership-action">
+          <% if (key === membership?.plan) { %>
+            <span class="chip">Current tier</span>
+          <% } else if (plan.level > currentLevel) { %>
+            <a class="btn primary" href="/upgrades/checkout/<%= key %>">Choose <%= plan.name %></a>
+          <% } else if (membership) { %>
+            <span class="dim">Included</span>
+          <% } %>
+        </div>
       </div>
     </section>
   <% } %>
@@ -31,6 +31,10 @@
       <div class="field"><label for="membership-headline">Your headline</label><input id="membership-headline" name="headline" maxlength="72" value="<%= membership.headline %>"></div>
       <button type="submit">Save headline</button>
     </div>
+  </form>
+  <form method="post" action="/upgrades">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <button class="sm" type="submit" name="plan" value="free">Reset test membership</button>
   </form>
 <% } %>
 <%- include('partials/footer') %>

@@ -2,7 +2,7 @@
     num, link, kind, targetId, editUrl (or null), deleteAction (or null), canReply %>
 <div class="box post" id="<%= p.anchor %>">
   <div class="post-user">
-    <a class="av av-lg av-<%= p.username.charCodeAt(0) % 6 %>" href="/u/<%= p.username %>"><%= p.username[0].toUpperCase() %></a>
+    <%- include('avatar', { name: p.username, has: p.has_avatar, size: 'lg', href: '/u/' + p.username }) %>
     <a class="name" href="/u/<%= p.username %>"><%= p.username %></a>
     <% if (p.role !== 'member') { %><span class="role <%= p.role %>"><%= p.role === 'admin' ? 'Administrator' : 'Moderator' %></span><br><% } %>
     <span class="dim"><%= rank(p.rep, p.joined) %></span>

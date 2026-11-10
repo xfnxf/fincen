@@ -470,7 +470,9 @@ input[type="text"], input[type="password"], input[type="search"], input[type="nu
 .menu summary.me .av { width: 34px; height: 34px; }
 .profile-identity, .avatar-settings { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
 .profile-avatar { width: clamp(56px, 8vw, 80px); height: auto; aspect-ratio: 1; font-size: 32px; }
-.profile-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar img, .av-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.av-img { overflow: hidden; background: none; }
+.profile-elite .profile-avatar { outline: 2px solid var(--warn); outline-offset: 2px; }
 .profile-name, .avatar-settings form { min-width: 0; }
 .profile-name h1 { flex-wrap: wrap; gap: 8px; font-size: clamp(36px, 7vw, 56px); overflow-wrap: anywhere; }
 .profile-name p { margin-top: 8px; }
@@ -677,6 +679,12 @@ td { padding: 16px var(--cell-x); }
 .feat-card:hover { background: var(--blue); color: var(--on-blue); }
 .feat-card:hover .feat-price { color: var(--on-blue-muted); }
 .feat-price { color: var(--link); font-variant-numeric: tabular-nums; }
+.membership-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 218px), 1fr)); gap: var(--grid-gap); margin: 16px 0 var(--grid-gap); }
+.membership-grid > .box { display: flex; flex-direction: column; min-width: 0; margin: 0; }
+.membership-grid .box-body { display: flex; flex: 1; flex-direction: column; }
+.membership-grid ul { margin: 0; padding-inline-start: 18px; }
+.membership-grid li + li { margin-top: 6px; }
+.membership-action { margin-top: auto; padding-top: 18px; }
 .price, .num { font-variant-numeric: tabular-nums; }
 .chip.st-sold { background: var(--raise); color: var(--dim); }
 .st-sold { color: var(--dim); }

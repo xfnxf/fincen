@@ -1,0 +1,3 @@
+<%# expects: name, has (truthy when a picture is uploaded); optional: size ('lg'), href %>
+<% const cls = 'av' + (locals.size ? ' av-' + size : '') + (has ? ' av-img' : ' av-' + (name.charCodeAt(0) % 6)); %>
+<% if (locals.href) { %><a class="<%= cls %>" href="<%= href %>" title="<%= name %>"><% } else { %><span class="<%= cls %>"><% } %><% if (has) { %><img src="/u/<%= name %>/avatar" alt="" width="64" height="64"><% } else { %><%= name[0].toUpperCase() %><% } %><% if (locals.href) { %></a><% } else { %></span><% } %>

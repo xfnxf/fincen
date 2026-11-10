@@ -2,7 +2,7 @@
 <% const self = me && me.id === user.id; %>
 <% if (user.banned) { %><div class="notice bad-note"><b class="bad">Banned.</b> <%= user.ban_reason || 'No reason given.' %> Do not deal with this member.</div><% } %>
 <div class="page-head">
-  <div class="profile-identity">
+  <div class="profile-identity<%= membership?.plan === 'elite' ? ' profile-elite' : '' %>">
     <%- include('partials/profile-avatar', { avatarUser: user }) %>
     <div class="profile-name">
       <h1><span><%= user.username %></span>

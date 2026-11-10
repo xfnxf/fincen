@@ -9,6 +9,12 @@ fs.mkdirSync(dataDir, { recursive: true });
 const db = new DatabaseSync(path.join(dataDir, 'forum.db'));
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
 
+const membershipSchema = `CREATE TABLE IF NOT EXISTS sandbox_memberships (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL CHECK (plan IN ('free', 'plus', 'pro', 'elite')),
+  headline TEXT NOT NULL DEFAULT ''
+);`;
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY,
@@ -243,12 +249,7 @@ CREATE TABLE IF NOT EXISTS sandbox_orders (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sandbox_orders_single_sale ON sandbox_orders(thread_id)
   WHERE status IN ('reserved', 'paid', 'delivered', 'disputed', 'paid_out');
-CREATE TABLE IF NOT EXISTS sandbox_memberships (
-  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  plan TEXT NOT NULL CHECK (plan IN ('free', 'plus', 'pro')),
-  expires_at INTEGER NOT NULL,
-  headline TEXT NOT NULL DEFAULT ''
-);
+${membershipSchema}
 CREATE TABLE IF NOT EXISTS sandbox_order_events (
   id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL REFERENCES sandbox_orders(id),
@@ -279,5 +280,23 @@ CREATE TABLE IF NOT EXISTS sandbox_saved_searches (
   UNIQUE(user_id, query)
 );
 `);
+
+// Carry over test purchases and headlines from the old 30-day memberships.
+db.exec('BEGIN IMMEDIATE');
+try {
+  if (db.prepare('PRAGMA table_info(sandbox_memberships)').all().some((column) => column.name === 'expires_at')) {
+    db.exec(`
+      ALTER TABLE sandbox_memberships RENAME TO sandbox_memberships_legacy;
+      ${membershipSchema}
+      INSERT INTO sandbox_memberships (user_id, plan, headline)
+        SELECT user_id, plan, headline FROM sandbox_memberships_legacy;
+      DROP TABLE sandbox_memberships_legacy;
+    `);
+  }
+  db.exec('COMMIT');
+} catch (error) {
+  db.exec('ROLLBACK');
+  throw error;
+}
 
 module.exports = db;

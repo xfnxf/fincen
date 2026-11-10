@@ -17,7 +17,7 @@
           <option value="<%= f.slug %>" <%= navSlug === f.slug ? 'selected' : '' %>><%= f.name %></option>
         <% } %><% if (sec) { %></optgroup><% } %>
       </select>
-      <button type="submit" class="sm">Go</button>
+      <noscript><button type="submit" class="sm">Go</button></noscript>
     </form>
   </div>
 </footer>

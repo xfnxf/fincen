@@ -42,7 +42,7 @@
         <% if (isMod) { %><a class="ico <%= on('/mod') %>" href="/mod">Queue<% if (openReports) { %><span class="count"><%= openReports %></span><% } %></a><% } %>
         <a class="btn primary" href="/sell">Post listing</a>
         <details class="menu">
-          <summary class="me"><span class="av av-<%= me.username.charCodeAt(0) % 6 %>"><%= me.username[0].toUpperCase() %></span></summary>
+          <summary class="me"><%- include('avatar', { name: me.username, has: me.has_avatar }) %></summary>
           <div class="menu-list">
             <div class="menu-label"><%= me.username %></div>
             <a href="/u/<%= me.username %>">My profile</a>

@@ -66,6 +66,14 @@ test('sandbox checkout and membership upgrades through the forum', { timeout: 20
     const second = listing('test_second');
     const unsupported = listing('test_discord', 'discord');
     const expiring = listing('test_expire');
+    db.exec(`DROP TABLE sandbox_memberships;
+      CREATE TABLE sandbox_memberships (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        plan TEXT NOT NULL CHECK (plan IN ('free', 'plus', 'pro')),
+        expires_at INTEGER NOT NULL,
+        headline TEXT NOT NULL DEFAULT ''
+      );`);
+    db.prepare('INSERT INTO sandbox_memberships VALUES (?, ?, ?, ?)').run(staff.id, 'plus', now - 1, 'Original test headline');
     forum = await startForum(dataDir);
 
     function request(route, user, form) {
@@ -147,17 +155,20 @@ test('sandbox checkout and membership upgrades through the forum', { timeout: 20
 
     await t.test('enforces upgrade perks and hides sandbox commerce in production', async () => {
       const guest = { cookie: '' };
-      assert.match(await html('/upgrades', guest), /Choose Pro/);
+      const upgrades = await html('/upgrades', guest);
+      for (const price of ['$5 once', '$12 once', '$25 once']) assert.ok(upgrades.includes(price), price);
+      assert.doesNotMatch(upgrades, /\/ month|30 days/);
+      assert.match(await html('/u/' + staff.name, guest), /Original test headline/);
       const guestCheckout = await request('/upgrades/checkout/plus', guest);
       assert.match(guestCheckout.headers.get('location'), /^\/login\?next=/);
       assert.match(await html('/u/' + seller.name, seller), /Upgrade membership/);
       assert.equal((await request('/my/listings/export', seller)).status, 403);
-      assert.match(await html('/upgrades', seller), /\$12 \/ month/);
       const choosePlus = await request('/upgrades', seller, { plan: 'plus' });
       assert.equal(choosePlus.headers.get('location'), '/upgrades/checkout/plus');
       const plusCheckout = await html('/upgrades/checkout/plus', seller);
       assert.match(plusCheckout, /Plus membership/);
-      assert.match(plusCheckout, /Confirm test purchase/);
+      assert.match(plusCheckout, /Your perks do not expire/);
+      assert.match(plusCheckout, /Due today <b>\$0<\/b>/);
       assert.equal((await request('/upgrades/headline', seller, { headline: 'Before checkout' })).status, 403);
       assert.equal((await request('/upgrades/checkout/plus', seller, { _csrf: 'invalid' })).status, 403);
       assert.equal((await request('/upgrades/checkout/plus', seller, {})).status, 303);
@@ -187,6 +198,13 @@ test('sandbox checkout and membership upgrades through the forum', { timeout: 20
       const csv = await request('/my/listings/export', seller);
       assert.equal(csv.status, 200);
       assert.match(await csv.text(), /test_first/);
+      assert.match(await html('/upgrades/checkout/elite', seller), /Elite membership/);
+      assert.equal((await request('/upgrades/checkout/elite', seller, {})).status, 303);
+      assert.match(await html('/u/' + seller.name, buyer), /profile-elite/);
+      assert.equal((await request('/my/listings/export', seller)).status, 200);
+      assert.equal((await request('/upgrades/checkout/plus', seller)).headers.get('location'), '/upgrades');
+      assert.equal((await request('/upgrades/checkout/plus', seller, {})).status, 303);
+      assert.equal(db.prepare('SELECT plan FROM sandbox_memberships WHERE user_id = ?').get(seller.id).plan, 'elite');
       assert.equal((await request('/upgrades', seller, { plan: 'free' })).status, 302);
       assert.doesNotMatch(await html('/u/' + seller.name, buyer), /Test seller headline/);
       assert.equal((await request('/my/listings/export', seller)).status, 403);
