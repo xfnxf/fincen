@@ -165,8 +165,8 @@ test('memberships are sold through NOWPayments and only activate on a verified f
       assert.equal(orderOf(ref).status, 'paid');
       assert.equal(planOf(buyer), 'pro');
 
-      assert.match(await (await request('/upgrades/orders/' + ref, buyer)).text(), /Pro is active/);
-      assert.equal((await request('/my/listings/export', buyer)).status, 200, 'Pro perk unlocked');
+      assert.match(await (await request('/upgrades/orders/' + ref, buyer)).text(), /Aurum is active/);
+      assert.equal((await request('/my/listings/export', buyer)).status, 200, 'Aurum perk unlocked');
       assert.equal((await request('/my/listings/export', other)).status, 403);
       assert.equal((await request('/upgrades/checkout/plus', buyer, {})).headers.get('location'), '/upgrades', 'cannot buy a lower tier');
     });

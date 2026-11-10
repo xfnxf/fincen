@@ -2,10 +2,10 @@ const db = require('./db');
 
 const plans = {
   free: { name: 'Free', level: 0, price: 0, perks: ['Post listings and join forum discussions', 'Save listings and message members'] },
-  plus: { name: 'Plus', level: 1, price: 500, perks: ['Plus profile badge and custom headline', 'Saved searches', 'Price-drop alerts for saved listings'] },
-  pro: { name: 'Pro', level: 2, price: 1200, perks: ['Everything in Plus', 'Pro profile badge', 'Seller dashboard and bulk listing controls',
+  plus: { name: 'Sterling', level: 1, price: 500, perks: ['Sterling profile badge and custom headline', 'Saved searches', 'Price-drop alerts for saved listings'] },
+  pro: { name: 'Aurum', level: 2, price: 1200, perks: ['Everything in Sterling', 'Aurum profile badge', 'Seller dashboard and bulk listing controls',
     'Export your listings as CSV'] },
-  elite: { name: 'Elite', level: 3, price: 2500, perks: ['Everything in Pro', 'Elite badge and gold profile accent'] },
+  elite: { name: 'Sovereign', level: 3, price: 2500, perks: ['Everything in Aurum', 'Sovereign badge and gold profile accent'] },
 };
 const get = db.prepare('SELECT plan, headline FROM sandbox_memberships WHERE user_id = ?');
 const reset = db.prepare("UPDATE sandbox_memberships SET plan = 'free' WHERE user_id = ?");

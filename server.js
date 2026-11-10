@@ -1347,7 +1347,7 @@ function requireMemberships(req, res, next) {
 }
 
 function requirePaidMembership(req, res, next) {
-  if (!memberships.hasTier(req.user.id, 'plus')) return fail(res, 403, 'A Plus membership or higher is required.');
+  if (!memberships.hasTier(req.user.id, 'plus')) return fail(res, 403, `${memberships.plans.plus.name} membership or higher is required.`);
   next();
 }
 
@@ -1373,7 +1373,7 @@ app.post('/saved/searches/:id/delete', requireMemberships, requireLogin, (req, r
 });
 
 app.post('/my/listings/bulk', requireMemberships, requireLogin, (req, res) => {
-  if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, 'A Pro membership or higher is required.');
+  if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, `${memberships.plans.pro.name} membership or higher is required.`);
   const status = req.body.status;
   if (!['open', 'closed'].includes(status)) return fail(res, 400, 'Choose open or closed.');
   const ids = [...new Set([req.body.listing].flat().map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
@@ -1482,13 +1482,13 @@ app.post('/mod/memberships/:id/activate', requireMemberships, requireLogin, requ
 });
 
 app.post('/upgrades/headline', requireMemberships, requireLogin, (req, res) => {
-  if (!memberships.setHeadline(req.user.id, clean(req.body.headline, 72))) return fail(res, 403, 'A Plus membership or higher is required.');
+  if (!memberships.setHeadline(req.user.id, clean(req.body.headline, 72))) return fail(res, 403, `${memberships.plans.plus.name} membership or higher is required.`);
   flash(res, 'Profile headline saved.');
   res.redirect('/upgrades');
 });
 
 app.get('/my/listings/export', requireMemberships, requireLogin, (req, res) => {
-  if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, 'A Pro membership or higher is required.');
+  if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, `${memberships.plans.pro.name} membership or higher is required.`);
   const rows = db.prepare(`SELECT handle, title, listing_type, status, price_cents, views FROM threads
     WHERE user_id = ? AND listing_type IS NOT NULL AND deleted = 0 ORDER BY id DESC`).all(req.user.id);
   const columns = ['handle', 'title', 'listing_type', 'status', 'price_cents', 'views'];
