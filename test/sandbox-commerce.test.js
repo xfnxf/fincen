@@ -166,7 +166,7 @@ test('sandbox checkout and membership upgrades through the forum', { timeout: 20
       const choosePlus = await request('/upgrades', seller, { plan: 'plus' });
       assert.equal(choosePlus.headers.get('location'), '/upgrades/checkout/plus');
       const plusCheckout = await html('/upgrades/checkout/plus', seller);
-      assert.match(plusCheckout, /Sterling membership/);
+      assert.match(plusCheckout, /Argent membership/);
       assert.match(plusCheckout, /Your perks do not expire/);
       assert.match(plusCheckout, /Due today <b>\$0<\/b>/);
       assert.equal((await request('/upgrades/headline', seller, { headline: 'Before checkout' })).status, 403);
@@ -198,7 +198,7 @@ test('sandbox checkout and membership upgrades through the forum', { timeout: 20
       const csv = await request('/my/listings/export', seller);
       assert.equal(csv.status, 200);
       assert.match(await csv.text(), /test_first/);
-      assert.match(await html('/upgrades/checkout/elite', seller), /Sovereign membership/);
+      assert.match(await html('/upgrades/checkout/elite', seller), /Imperium membership/);
       assert.equal((await request('/upgrades/checkout/elite', seller, {})).status, 303);
       assert.match(await html('/u/' + seller.name, buyer), /profile-elite/);
       assert.equal((await request('/my/listings/export', seller)).status, 200);

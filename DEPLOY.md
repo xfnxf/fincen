@@ -128,7 +128,7 @@ sqlite3 /data/forum.db ".backup '/data/backup.db'"
 
 ## Membership payments (NOWPayments)
 
-Memberships (Sterling, Aurum, Sovereign) are sold as one-time crypto payments. Username deals are not handled by the site.
+Memberships (Argent, Aurum, Imperium) are sold as one-time crypto payments. Username deals are not handled by the site.
 
 1. Create a NOWPayments account and add the payout wallet you want to be paid into.
 2. In their dashboard create an API key and an IPN secret key.
