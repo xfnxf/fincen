@@ -1,0 +1,28 @@
+<%- include('partials/header', { crumbs: [['Membership upgrades', '/upgrades'], ['Payment']] }) %>
+<div class="narrow">
+  <h1><%= plan.name %> membership</h1>
+  <div class="box">
+    <div class="box-head"><h2>Payment <%= order.token.slice(0, 8) %></h2><span><%= money(order.price_cents) %> once</span></div>
+    <div class="box-body">
+      <% if (order.status === 'paid') { %>
+        <p><b class="good">Paid.</b> <%= plan.name %> is active on your account.</p>
+        <a class="btn primary" href="/upgrades">Back to memberships</a>
+      <% } else if (order.status === 'partial') { %>
+        <p><b class="warn">Part of the payment arrived.</b> The amount received was less than the price, so the tier is not active yet.</p>
+        <p class="dim">Message <a href="/staff">staff</a> with the payment reference above and they will sort it out.</p>
+      <% } else if (order.status === 'failed' || order.status === 'expired' || order.status === 'refunded') { %>
+        <p><b class="bad">This payment <%= order.status === 'refunded' ? 'was refunded' : order.status === 'expired' ? 'expired' : 'failed' %>.</b> Nothing was activated.</p>
+        <a class="btn primary" href="/upgrades/checkout/<%= order.plan %>">Start again</a>
+      <% } else { %>
+        <p>Pay on the NOWPayments page. You can choose which coin to pay with there.</p>
+        <p class="dim">Your tier switches on by itself once the payment is confirmed on the blockchain. That usually takes a few minutes and can take longer on a busy network. You can close this page and come back.</p>
+        <div class="actions">
+          <% if (order.invoice_url) { %><a class="btn primary" href="<%= order.invoice_url %>" rel="noopener noreferrer">Continue to payment</a><% } %>
+          <a class="btn" href="/upgrades/orders/<%= order.token %>">Check status</a>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  <p class="small dim">Payments are made in crypto and cannot be reversed by the network. Memberships are one-time purchases and do not renew.</p>
+</div>
+<%- include('partials/footer') %>

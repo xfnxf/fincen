@@ -125,3 +125,21 @@ sqlite3 /data/forum.db ".backup '/data/backup.db'"
 - Email verification at sign-up. An address is accepted as typed.
 - Sign-up bot protection beyond rate limits.
 - The in-memory rate limiter resets when the process restarts.
+
+## Membership payments (NOWPayments)
+
+Memberships (Plus, Pro, Elite) are sold as one-time crypto payments. Username deals are not handled by the site.
+
+1. Create a NOWPayments account and add the payout wallet you want to be paid into.
+2. In their dashboard create an API key and an IPN secret key.
+3. Set them on the host. The site must already have the right `SITE_URL`, because NOWPayments calls back to `SITE_URL/payments/nowpayments/ipn`.
+
+```bash
+fly secrets set NOWPAYMENTS_API_KEY=YOUR_KEY NOWPAYMENTS_IPN_SECRET=YOUR_IPN_SECRET
+```
+
+With both set, the Upgrades pages appear on the live site and the perks (saved searches, price-drop alerts, seller dashboard, bulk changes, CSV export, badges) unlock for paying members. With either one missing, memberships stay hidden.
+
+How a payment is accepted: the callback's signature is checked with the IPN secret, then the payment is looked up again from NOWPayments with the API key, and the tier is only switched on when that lookup says `finished` for the full USD price. Underpayments are marked `partial` and left for an admin at `/mod/memberships`.
+
+Test first with their sandbox by also setting `NOWPAYMENTS_API_URL=https://api-sandbox.nowpayments.io/v1` and sandbox keys, then remove it.

@@ -2,7 +2,11 @@
 <div class="page-head">
   <div><h1>Membership upgrades</h1><p>Pay once and keep your perks.</p></div>
 </div>
-<p class="small dim">Preview only &middot; Checkout won’t charge you.</p>
+<% if (paymentsEnabled) { %>
+  <p class="small dim">Paid in crypto through NOWPayments. One-time, no renewals.<% if (me && me.role === 'admin') { %> &middot; <a href="/mod/memberships">Membership payments</a><% } %></p>
+<% } else { %>
+  <p class="small dim">Preview only &middot; Checkout won’t charge you.</p>
+<% } %>
 <% const currentLevel = membership ? plans[membership.plan].level : 0; %>
 <div class="membership-grid">
   <% for (const [key, plan] of Object.entries(plans)) { %>
@@ -32,9 +36,11 @@
       <button type="submit">Save headline</button>
     </div>
   </form>
+  <% if (!paymentsEnabled) { %>
   <form method="post" action="/upgrades">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
     <button class="sm" type="submit" name="plan" value="free">Reset test membership</button>
   </form>
+  <% } %>
 <% } %>
 <%- include('partials/footer') %>

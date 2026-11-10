@@ -7,7 +7,7 @@
     <div class="profile-name">
       <h1><span><%= user.username %></span>
         <% if (user.role !== 'member') { %><span class="role <%= user.role %>"><%= user.role === 'admin' ? 'Administrator' : 'Moderator' %></span><% } %>
-        <% if (membership && membership.plan !== 'free') { %><span class="chip"><%= membershipName %> &middot; Test</span><% } %>
+        <% if (membership && membership.plan !== 'free') { %><span class="chip"><%= membershipName %><% if (!paymentsEnabled) { %> &middot; Test<% } %></span><% } %>
       </h1>
       <% if (membership?.headline) { %><p class="body-text"><%= membership.headline %></p><% } %>
       <p><%= rank(user.rep, user.created_at) %> &middot;
@@ -17,7 +17,7 @@
   </div>
   <div class="actions">
     <% if (self) { %>
-      <% if (checkoutEnabled) { %><a class="btn primary" href="/upgrades"><%= membership.plan === 'free' ? 'Upgrade membership' : 'Manage membership' %></a><% } %>
+      <% if (membershipsEnabled) { %><a class="btn primary" href="/upgrades"><%= membership.plan === 'free' ? 'Upgrade membership' : 'Manage membership' %></a><% } %>
       <% if (checkoutEnabled) { %><a class="btn" href="/orders">My Deals</a><% } %>
       <a class="btn" href="/settings">Edit profile</a>
       <a class="btn" href="/my/listings">My listings</a>

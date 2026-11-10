@@ -9,6 +9,9 @@ const mail = require('./mail');
 const fragment = require('./fragment');
 const sandbox = require('./sandbox-checkout');
 const memberships = require('./sandbox-memberships');
+const payments = require('./payments');
+// Memberships work in the local sandbox (free, for testing) or for real once NOWPayments keys are set.
+const membershipsOn = sandbox.enabled || payments.enabled;
 
 const SITE = process.env.SITE_NAME || 'Fincen';
 const PORT = Number(process.env.PORT) || 3000;
@@ -68,7 +71,7 @@ function fmt(text) {
 }
 
 Object.assign(app.locals, {
-  site: SITE, LISTING_TYPES, LISTING_SHORT, STATUSES, ago, fmt, checkoutEnabled: sandbox.enabled,
+  site: SITE, LISTING_TYPES, LISTING_SHORT, STATUSES, ago, fmt, checkoutEnabled: sandbox.enabled, membershipsEnabled: membershipsOn, paymentsEnabled: payments.enabled,
   time: (ts) => `<time datetime="${new Date(ts).toISOString()}" title="${new Date(ts).toUTCString()}">${ago(ts)}</time>`,
   date: (ts) => new Date(ts).toISOString().slice(0, 10),
   money: (cents) =>
@@ -263,6 +266,47 @@ function checkCsrf(req, res, next) {
 function renderSettingsError(res, status, error) {
   return res.status(status).render('settings', { title: 'Settings', error });
 }
+
+/* ---------- membership payments (NOWPayments) ---------- */
+const orderByToken = db.prepare('SELECT * FROM membership_orders WHERE token = ?');
+function settleMembershipOrder(order, status, payment) {
+  return sandbox.transaction(() => {
+    const fresh = db.prepare('SELECT * FROM membership_orders WHERE id = ?').get(order.id);
+    if (!fresh || fresh.status === 'paid') return fresh;           // paid is final, repeats are ignored
+    db.prepare('UPDATE membership_orders SET status = ?, payment_id = COALESCE(?, payment_id), pay_currency = COALESCE(?, pay_currency), updated_at = ? WHERE id = ?')
+      .run(status, payment?.id ?? null, payment?.currency ?? null, Date.now(), fresh.id);
+    if (status === 'paid') {
+      memberships.choose(fresh.user_id, fresh.plan);
+    }
+    return { ...fresh, status };
+  });
+}
+
+// NOWPayments calls this when a payment changes state. Nothing here trusts the caller:
+// the signature is checked, then the payment is looked up again from NOWPayments itself.
+app.post(payments.IPN_PATH, express.json({ limit: '64kb' }), async (req, res) => {
+  if (!payments.enabled) return res.status(404).end();
+  const body = req.body;
+  if (!body || typeof body !== 'object' || !payments.validSignature(body, req.get('x-nowpayments-sig'))) return res.status(401).end();
+  const order = orderByToken.get(String(body.order_id || ''));
+  if (!order || !body.payment_id) return res.status(200).end();   // not ours, tell them to stop retrying
+  let payment;
+  try {
+    payment = await payments.getPayment(String(body.payment_id));
+  } catch (error) {
+    console.error('membership payment lookup failed:', error.message);
+    return res.status(502).end();                                  // they retry later
+  }
+  if (String(payment.order_id) !== order.token) return res.status(200).end();
+  const rightPrice = String(payment.price_currency).toLowerCase() === 'usd' && Math.round(Number(payment.price_amount) * 100) === order.price_cents;
+  const state = String(payment.payment_status);
+  const status = state === 'finished' ? (rightPrice ? 'paid' : 'partial')
+    : state === 'partially_paid' ? 'partial'
+    : ['failed', 'expired', 'refunded'].includes(state) ? state
+    : null;                                                        // waiting, confirming, confirmed, sending: still pending
+  if (status) settleMembershipOrder(order, status, { id: String(payment.payment_id), currency: payment.pay_currency ? String(payment.pay_currency).slice(0, 20) : null });
+  res.status(200).end();
+});
 
 // Authenticate and rate-limit before buffering an image. Check CSRF after reading the form.
 app.post('/settings/avatar', requireLogin, limit('avatar', 10, 600000), (req, res, next) => {
@@ -561,7 +605,7 @@ app.get('/market', (req, res) => {
   const threads = db.prepare(`${THREAD_SELECT} WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT ? OFFSET ?`)
     .all(...args, PER_PAGE, pg.offset);
   const filtered = !!(f.q || f.seller || f.platform || f.type || f.max || f.stock || f.status !== 'open' || f.sort !== 'new');
-  const canSaveSearch = !!(sandbox.enabled && req.user && memberships.hasTier(req.user.id, 'plus'));
+  const canSaveSearch = !!(membershipsOn && req.user && memberships.hasTier(req.user.id, 'plus'));
   res.render('market', { title: 'Market', threads, pg, f, filtered, canSaveSearch });
 });
 
@@ -661,7 +705,7 @@ app.post('/t/:id/edit', requireLogin, (req, res) => {
       v.title, v.body, forum.is_market ? v.listing_type : null, forum.is_market ? v.handle : null, priceCents,
       Math.max(Date.now(), (current.edited_at || 0) + 1), thread.id
     );
-    if (sandbox.enabled && forum.is_market && current.status === 'open' && current.listing_type === 'sell' &&
+    if (membershipsOn && forum.is_market && current.status === 'open' && current.listing_type === 'sell' &&
         v.listing_type === 'sell' && current.handle?.toLowerCase() === v.handle.toLowerCase() &&
         priceCents != null && current.price_cents != null && priceCents < current.price_cents) {
       const watchers = db.prepare(`SELECT s.user_id FROM saves s JOIN sandbox_memberships m ON m.user_id = s.user_id
@@ -781,7 +825,7 @@ app.get('/my/listings', requireLogin, (req, res) => {
     ORDER BY t.status = 'open' DESC, t.last_post_at DESC LIMIT 200`).all(req.user.id);
   const now = Date.now();
   for (const t of all) t.canBump = t.status === 'open' && (!t.bumped_at || now - t.bumped_at > DAY);
-  const pro = sandbox.enabled && memberships.hasTier(req.user.id, 'pro');
+  const pro = membershipsOn && memberships.hasTier(req.user.id, 'pro');
   const listings = all.filter((t) => t.listing_type);
   const insights = pro ? db.prepare(`SELECT COALESCE(SUM(t.views), 0) AS views,
     COALESCE(SUM(t.status = 'sold' AND t.listing_type = 'sell'), 0) AS sold,
@@ -995,7 +1039,7 @@ app.get('/u/:username', (req, res) => {
     COALESCE(SUM(t.status = 'open'),0) AS open, COALESCE(SUM(t.status = 'sold'),0) AS sold
     FROM threads t JOIN forums f ON f.id = t.forum_id WHERE t.user_id = ? AND t.deleted = 0 AND f.is_market = 1`).get(user.id);
   const mine = req.user ? db.prepare('SELECT * FROM vouches WHERE from_id = ? AND to_id = ?').get(req.user.id, user.id) : null;
-  const membership = sandbox.enabled ? memberships.current(user.id) : null;
+  const membership = membershipsOn ? memberships.current(user.id) : null;
   res.render('profile', { title: user.username, user, counts, vouches, threads, deals, mine, membership,
     membershipName: membership ? memberships.plans[membership.plan].name : '', fbFilter: fbFilter ? req.query.fb : '' });
 });
@@ -1297,17 +1341,22 @@ app.post('/orders/:id/dispute/replies', requireSandbox, requireLogin, limit('ord
   res.redirect('/orders/' + id + '#dispute');
 });
 
+function requireMemberships(req, res, next) {
+  if (!membershipsOn) return fail(res, 404, 'Page not found.');
+  next();
+}
+
 function requirePaidMembership(req, res, next) {
   if (!memberships.hasTier(req.user.id, 'plus')) return fail(res, 403, 'A Plus membership or higher is required.');
   next();
 }
 
-app.get('/saved/searches', requireSandbox, requireLogin, requirePaidMembership, (req, res) => {
+app.get('/saved/searches', requireMemberships, requireLogin, requirePaidMembership, (req, res) => {
   const searches = db.prepare('SELECT id, name, query FROM sandbox_saved_searches WHERE user_id = ? ORDER BY id DESC').all(req.user.id);
   res.render('saved_searches', { title: 'Saved searches', searches });
 });
 
-app.post('/saved/searches', requireSandbox, requireLogin, requirePaidMembership, (req, res) => {
+app.post('/saved/searches', requireMemberships, requireLogin, requirePaidMembership, (req, res) => {
   const filters = marketFilters(req.body);
   const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value)).toString();
   const name = clean(req.body.name, 80) || filters.q || 'Market search';
@@ -1318,12 +1367,12 @@ app.post('/saved/searches', requireSandbox, requireLogin, requirePaidMembership,
   res.redirect('/saved/searches');
 });
 
-app.post('/saved/searches/:id/delete', requireSandbox, requireLogin, (req, res) => {
+app.post('/saved/searches/:id/delete', requireMemberships, requireLogin, (req, res) => {
   db.prepare('DELETE FROM sandbox_saved_searches WHERE id = ? AND user_id = ?').run(Number(req.params.id) || 0, req.user.id);
   res.redirect('/saved/searches');
 });
 
-app.post('/my/listings/bulk', requireSandbox, requireLogin, (req, res) => {
+app.post('/my/listings/bulk', requireMemberships, requireLogin, (req, res) => {
   if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, 'A Pro membership or higher is required.');
   const status = req.body.status;
   if (!['open', 'closed'].includes(status)) return fail(res, 400, 'Choose open or closed.');
@@ -1350,13 +1399,14 @@ app.post('/my/listings/bulk', requireSandbox, requireLogin, (req, res) => {
   res.redirect('/my/listings');
 });
 
-app.get('/upgrades', requireSandbox, (req, res) => {
+app.get('/upgrades', requireMemberships, (req, res) => {
   const membership = req.user ? memberships.current(req.user.id) : null;
   res.render('upgrades', { title: 'Membership upgrades', plans: memberships.plans, membership });
 });
 
-app.post('/upgrades', requireSandbox, requireLogin, (req, res) => {
+app.post('/upgrades', requireMemberships, requireLogin, (req, res) => {
   const plan = String(req.body.plan || '');
+  if (payments.enabled && plan === 'free') return fail(res, 400, 'Paid memberships cannot be reset here.');
   if (!Object.hasOwn(memberships.plans, plan)) return fail(res, 400, 'Choose a membership tier.');
   if (plan !== 'free') return res.redirect(303, '/upgrades/checkout/' + plan);
   memberships.choose(req.user.id, 'free');
@@ -1370,7 +1420,7 @@ function requirePaidPlan(req, res, next) {
   next();
 }
 
-app.get('/upgrades/checkout/:plan', requireSandbox, requireLogin, requirePaidPlan, (req, res) => {
+app.get('/upgrades/checkout/:plan', requireMemberships, requireLogin, requirePaidPlan, (req, res) => {
   const plan = memberships.plans[req.params.plan];
   if (memberships.hasTier(req.user.id, req.params.plan)) return res.redirect('/upgrades');
   const membership = memberships.current(req.user.id);
@@ -1379,20 +1429,65 @@ app.get('/upgrades/checkout/:plan', requireSandbox, requireLogin, requirePaidPla
   });
 });
 
-app.post('/upgrades/checkout/:plan', requireSandbox, requireLogin, requirePaidPlan, (req, res) => {
+app.post('/upgrades/checkout/:plan', requireMemberships, requireLogin, requirePaidPlan, limit('membership-checkout', 6, 600e3), async (req, res) => {
+  if (payments.enabled) {
+    const key = req.params.plan;
+    if (memberships.hasTier(req.user.id, key)) return res.redirect(303, '/upgrades');
+    const plan = memberships.plans[key];
+    const ref = token().slice(0, 32);
+    const now = Date.now();
+    const id = db.prepare('INSERT INTO membership_orders (token, user_id, plan, price_cents, created_at, updated_at) VALUES (?,?,?,?,?,?)')
+      .run(ref, req.user.id, key, plan.price, now, now).lastInsertRowid;
+    try {
+      const invoice = await payments.createInvoice({
+        orderRef: ref, cents: plan.price, description: `${SITE} ${plan.name} membership`,
+        siteUrl: SITE_URL, returnPath: '/upgrades/orders/' + ref,
+      });
+      db.prepare('UPDATE membership_orders SET invoice_id = ?, invoice_url = ? WHERE id = ?').run(invoice.id, invoice.url, id);
+    } catch (error) {
+      console.error('membership invoice failed:', error.message);
+      db.prepare("UPDATE membership_orders SET status = 'failed', updated_at = ? WHERE id = ?").run(Date.now(), id);
+      return fail(res, 502, 'The payment page could not be opened. Nothing was charged. Try again in a minute.');
+    }
+    return res.redirect(303, '/upgrades/orders/' + ref);
+  }
   if (memberships.choose(req.user.id, req.params.plan)) {
     flash(res, memberships.plans[req.params.plan].name + ' activated. No payment was collected.');
   }
   res.redirect(303, '/upgrades');
 });
 
-app.post('/upgrades/headline', requireSandbox, requireLogin, (req, res) => {
+app.get('/upgrades/orders/:token', requireMemberships, requireLogin, (req, res) => {
+  const order = orderByToken.get(String(req.params.token));
+  if (!order || (order.user_id !== req.user.id && req.user.role !== 'admin')) return fail(res, 404, 'Payment not found.');
+  res.set('Cache-Control', 'private, no-store');
+  res.render('membership_order', { title: 'Membership payment', order, plan: memberships.plans[order.plan] });
+});
+
+function requireAdmin(req, res, next) {
+  if (req.user.role !== 'admin') return fail(res, 403, 'Admins only.');
+  next();
+}
+app.get('/mod/memberships', requireMemberships, requireLogin, requireAdmin, (req, res) => {
+  const orders = db.prepare(`SELECT o.*, u.username FROM membership_orders o JOIN users u ON u.id = o.user_id
+    ORDER BY o.id DESC LIMIT 100`).all();
+  res.render('membership_orders', { title: 'Membership payments', orders, plans: memberships.plans });
+});
+app.post('/mod/memberships/:id/activate', requireMemberships, requireLogin, requireAdmin, (req, res) => {
+  const order = db.prepare('SELECT * FROM membership_orders WHERE id = ?').get(Number(req.params.id) || 0);
+  if (!order) return fail(res, 404, 'Payment not found.');
+  settleMembershipOrder(order, 'paid', null);
+  flash(res, 'Membership activated.');
+  res.redirect('/mod/memberships');
+});
+
+app.post('/upgrades/headline', requireMemberships, requireLogin, (req, res) => {
   if (!memberships.setHeadline(req.user.id, clean(req.body.headline, 72))) return fail(res, 403, 'A Plus membership or higher is required.');
   flash(res, 'Profile headline saved.');
   res.redirect('/upgrades');
 });
 
-app.get('/my/listings/export', requireSandbox, requireLogin, (req, res) => {
+app.get('/my/listings/export', requireMemberships, requireLogin, (req, res) => {
   if (!memberships.hasTier(req.user.id, 'pro')) return fail(res, 403, 'A Pro membership or higher is required.');
   const rows = db.prepare(`SELECT handle, title, listing_type, status, price_cents, views FROM threads
     WHERE user_id = ? AND listing_type IS NOT NULL AND deleted = 0 ORDER BY id DESC`).all(req.user.id);

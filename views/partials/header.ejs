@@ -27,7 +27,7 @@
       <a class="<%= on('/market') %>" href="/market">Market</a>
       <a class="<%= on('/members') %>" href="/members">Members</a>
       <a class="<%= on('/help') %>" href="/help">Help</a>
-      <% if (checkoutEnabled) { %><a class="<%= here.startsWith('/upgrades') ? 'on' : '' %>" href="/upgrades">Upgrades</a><% } %>
+      <% if (membershipsEnabled) { %><a class="<%= here.startsWith('/upgrades') ? 'on' : '' %>" href="/upgrades">Upgrades</a><% } %>
       <form class="search" action="/search" method="get">
         <input type="search" name="q" id="q" aria-label="Search forum" value="<%= searchQ %>" placeholder="Search" title="Search usernames, threads and members. Press / to jump here." maxlength="64">
         <kbd>/</kbd>
@@ -47,10 +47,8 @@
             <div class="menu-label"><%= me.username %></div>
             <a href="/u/<%= me.username %>">My profile</a>
             <a href="/my/listings">My listings</a>
-            <% if (checkoutEnabled) { %>
-              <a href="/orders">My Deals</a>
-              <a href="/upgrades">Membership upgrades</a>
-            <% } %>
+            <% if (checkoutEnabled) { %><a href="/orders">My Deals</a><% } %>
+            <% if (membershipsEnabled) { %><a href="/upgrades">Membership upgrades</a><% } %>
             <a href="/saved">Saved listings</a>
             <a href="/settings">Settings</a>
             <hr>

@@ -1,0 +1,26 @@
+<%- include('partials/header', { crumbs: [['Staff queue', '/mod'], ['Membership payments']] }) %>
+<div class="page-head"><div><h1>Membership payments</h1><p>Most recent 100. Paid ones are activated automatically.</p></div></div>
+<div class="box">
+  <table>
+    <thead><tr><th>Member</th><th>Tier</th><th class="right">Price</th><th>Status</th><th class="right">Action</th></tr></thead>
+    <tbody>
+      <% if (!orders.length) { %><tr><td class="empty" colspan="5">No membership payments yet.</td></tr><% } %>
+      <% for (const o of orders) { %>
+        <tr>
+          <td><a href="/u/<%= o.username %>"><%= o.username %></a><br><span class="dim small"><%= o.token.slice(0, 8) %> &middot; <%- time(o.created_at) %></span></td>
+          <td><%= plans[o.plan].name %></td>
+          <td class="right"><%= money(o.price_cents) %></td>
+          <td><%= o.status %><% if (o.payment_id) { %><br><span class="dim small">payment <%= o.payment_id %><%= o.pay_currency ? ' in ' + o.pay_currency.toUpperCase() : '' %></span><% } %></td>
+          <td class="right">
+            <% if (o.status !== 'paid') { %>
+              <form class="inline" method="post" action="/mod/memberships/<%= o.id %>/activate" data-confirm="Activate <%= plans[o.plan].name %> for <%= o.username %> without a confirmed full payment?">
+                <input type="hidden" name="_csrf" value="<%= csrf %>"><button type="submit" class="sm">Activate anyway</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('partials/footer') %>

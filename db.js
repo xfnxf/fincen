@@ -250,6 +250,21 @@ CREATE TABLE IF NOT EXISTS sandbox_orders (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sandbox_orders_single_sale ON sandbox_orders(thread_id)
   WHERE status IN ('reserved', 'paid', 'delivered', 'disputed', 'paid_out');
 ${membershipSchema}
+CREATE TABLE IF NOT EXISTS membership_orders (
+  id INTEGER PRIMARY KEY,
+  token TEXT NOT NULL UNIQUE,                    -- reference sent to the payment provider
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL CHECK (plan IN ('plus', 'pro', 'elite')),
+  price_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',        -- pending | paid | partial | failed | expired | refunded
+  invoice_id TEXT,
+  invoice_url TEXT,
+  payment_id TEXT,
+  pay_currency TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_membership_orders_user ON membership_orders(user_id, id);
 CREATE TABLE IF NOT EXISTS sandbox_order_events (
   id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL REFERENCES sandbox_orders(id),
